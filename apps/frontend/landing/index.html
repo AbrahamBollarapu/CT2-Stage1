@@ -1,0 +1,154 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>CogTechAI — Status</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { --ok:#12b886; --bad:#e03131; --muted:#667085; --card:#0f172a10; --ring:#0ea5e980; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; margin:0; background:#0b1220; color:#e6edf6; }
+  header { padding:20px 24px; border-bottom:1px solid #1f2937; display:flex; align-items:center; gap:12px;}
+  header h1 { font-size:18px; margin:0; font-weight:600; letter-spacing:.2px; }
+  main { padding:24px; max-width:1100px; margin:0 auto; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:16px; }
+  .card { background:var(--card); border:1px solid #1f2937; border-radius:16px; padding:16px; position:relative; }
+  .name { font-weight:600; margin:0 0 6px 0; }
+  .desc { color:var(--muted); font-size:12px; margin:0 0 10px; }
+  .chip { display:inline-flex; align-items:center; gap:8px; font-weight:600; border-radius:999px; padding:6px 10px; border:1px solid #243045; }
+  .chip.ok { color:var(--ok); box-shadow:0 0 0 4px var(--ring) inset; }
+  .chip.bad { color:var(--bad); }
+  .chip .dot { width:8px; height:8px; border-radius:999px; background:currentColor; display:inline-block; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; color:#9fb2cc; font-size:12px; }
+  footer { color:#9fb2cc; font-size:12px; padding:16px 24px; border-top:1px solid #1f2937; }
+  a { color:#93c5fd; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+  <header>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="#93c5fd" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.86L18.18 22 12 18.77 5.82 22 7 14.13l-5-4.86 6.91-1.01L12 2z"/></svg>
+    <h1>CogTechAI — Live Status</h1>
+  </header>
+
+  <main>
+    <section class="grid" id="grid"></section>
+
+    <section style="margin-top:24px">
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="name">Quick Demo</div>
+            <p class="desc">Build → poll status → fetch artifact via Evidence</p>
+          </div>
+          <button id="runDemo" style="background:#0ea5e9;color:#00111f;border:none;padding:8px 12px;border-radius:10px;cursor:pointer">Run</button>
+        </div>
+        <pre class="mono" id="demoLog" style="white-space:pre-wrap;margin-top:10px"></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+  Traefik @ <a href="http://localhost:8090/dashboard/#/http/routers" target="_blank">Admin Dashboard</a>
+  · <a href="/docs/reports" target="_blank" rel="noopener">Reports API Docs</a>
+</footer>
+
+
+<script>
+const base = location.origin; // http://localhost:8081 via Traefik
+
+const services = [
+  { key:"reports", name:"Reports",     url:`${base}/api/reports/health`,     desc:"Build pipeline & status" },
+  { key:"evidence",name:"Evidence",    url:`${base}/api/evidence/health`,    desc:"Artifact serving" },
+  { key:"times",   name:"Time Series", url:`${base}/api/time-series/health`, desc:"Data API" },
+  { key:"emf",     name:"Emission Factors", url:`${base}/api/emission-factors/health`, desc:"Factors API" },
+  { key:"esg",  name:"ESG",  url:`${base}/api/esg/health`, desc:"ESG API" },
+{ key:"dq",   name:"Data Quality", url:`${base}/api/data-quality/health`, desc:"DQ API" },
+{ key:"jobs", name:"Jobs", url:`${base}/api/jobs/health`, desc:"Job runner" },
+{ key:"xbrl", name:"XBRL", url:`${base}/api/xbrl/health`, desc:"XBRL mapping" },
+{ key:"kpi",  name:"KPI",  url:`${base}/api/kpi/health`, desc:"KPI calc" },
+{ key:"ing",  name:"Ingestion", url:`${base}/api/ingest/health`, desc:"Data ingest" },
+{ key:"dash", name:"Dashboards", url:`${base}/api/dash/health`, desc:"UI backend" },
+{ key:"srch", name:"Search Index", url:`${base}/api/search/health`, desc:"Search API" },
+
+];
+
+const grid = document.getElementById('grid');
+function card(name, desc, ok, extra="") {
+  const cls = ok ? "chip ok" : "chip bad";
+  return `
+    <div class="card">
+      <div class="row">
+        <div>
+          <div class="name">${name}</div>
+          <p class="desc">${desc}</p>
+        </div>
+        <div class="${cls}"><span class="dot"></span>${ok?"Healthy":"Down"}</div>
+      </div>
+      ${extra}
+    </div>`;
+}
+
+async function ping(svc) {
+  try {
+    const r = await fetch(svc.url, { cache:"no-store" });
+    if (!r.ok) return { ok:false };
+    const j = await r.json().catch(()=> ({}));
+    return { ok: j.ok === true || j.status === "healthy", data: j };
+  } catch { return { ok:false }; }
+}
+
+async function refresh() {
+  const results = await Promise.all(services.map(ping));
+  grid.innerHTML = services.map((svc, i) => {
+    const res = results[i];
+    const extra = res.data?.version ? `<div class="mono">version: ${res.data.version}</div>` : "";
+    return card(svc.name, svc.desc, res.ok, extra);
+  }).join("");
+}
+refresh();
+setInterval(refresh, 5000);
+
+// Demo flow: build -> poll -> download
+async function runDemo() {
+  const log = document.getElementById('demoLog');
+  function println(s){ log.textContent += s + "\n"; }
+
+  try {
+    println("POST /api/reports/build …");
+    const br = await fetch(`${base}/api/reports/build`, {
+      method: "POST",
+      headers: { "content-type":"application/json" },
+      body: JSON.stringify({ template:"truststrip", period:"2024Q4" })
+    });
+    if (!br.ok) throw new Error("build failed: " + br.status);
+    const bj = await br.json();
+    const id = bj.artifactId; println("artifactId: " + id);
+
+    // poll
+    let state = "processing", tries = 0;
+    while (state !== "completed" && tries < 15) {
+      await new Promise(r => setTimeout(r, 1000));
+      const sr = await fetch(`${base}/api/reports/status/${id}`, { cache:"no-store" });
+      const sj = await sr.json(); state = sj.state || "unknown";
+      println(`status: ${state}`);
+      tries++;
+    }
+
+    println("GET /api/evidence/artifacts/:id/content …");
+    const dl = await fetch(`${base}/api/evidence/artifacts/${id}/content`);
+    if (!dl.ok) throw new Error("download failed: " + dl.status);
+    const blob = await dl.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${id}.` + (dl.headers.get("content-type")==="application/pdf"?"pdf":"txt");
+    a.click();
+    println("Done ✅ (downloaded)");
+  } catch (e) {
+    println("Demo failed: " + e.message);
+  }
+}
+document.getElementById('runDemo').addEventListener('click', runDemo);
+</script>
+</body>
+</html>

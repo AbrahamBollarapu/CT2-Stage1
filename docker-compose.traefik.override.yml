@@ -1,0 +1,16 @@
+﻿services:
+  traefik:
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      # Pin to the actual network name your containers are on:
+      - --providers.docker.network=ct2_ct2-net
+      # Public app entrypoint (port 80 on host)
+      - --entrypoints.web.address=:80
+      # Dashboard/API entrypoint MUST be named "traefik"
+      - --entrypoints.traefik.address=:8080
+    ports:
+      - "80:80"
+      - "8090:8080"

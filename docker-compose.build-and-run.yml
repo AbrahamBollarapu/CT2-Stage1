@@ -1,0 +1,37 @@
+services:
+  xbrl-mapping-service:
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    entrypoint:
+      - sh
+      - -lc
+      - |
+        set -e
+        # compile to CJS no matter what tsconfig says
+        npx tsc --module commonjs --outDir dist || (npm i -D typescript && npx tsc --module commonjs --outDir dist)
+        exec node dist/server.js
+
+  governance-service:
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    entrypoint:
+      - sh
+      - -lc
+      - |
+        set -e
+        npx tsc --module commonjs --outDir dist || (npm i -D typescript && npx tsc --module commonjs --outDir dist)
+        exec node dist/server.js
+
+  evidence-store:
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    entrypoint:
+      - sh
+      - -lc
+      - |
+        set -e
+        npx tsc --module commonjs --outDir dist || (npm i -D typescript && npx tsc --module commonjs --outDir dist)
+        exec node dist/server.js

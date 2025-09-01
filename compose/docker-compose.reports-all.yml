@@ -1,0 +1,37 @@
+services:
+  report-compiler-service:
+    # Run Node directly (avoid npm-run SIGTERM)
+    entrypoint: ["/sbin/tini","-g","--"]
+    command: ["node","dist/index.js"]
+
+    # Solid IPv4 healthcheck for Express on 8000
+    healthcheck:
+      test: ["CMD-SHELL","wget -4 -qO- http://127.0.0.1:8000/ready || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+    restart: unless-stopped
+
+    # Traefik v2 labels (authoritative)
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ct2_ct2-net
+
+      traefik.http.routers.reports.rule: PathPrefix(`/api/reports`)
+      traefik.http.routers.reports.entrypoints: web
+      traefik.http.routers.reports.priority: "10000"
+      traefik.http.routers.reports.service: reports
+
+      traefik.http.middlewares.reports-strip.stripprefix.prefixes: /api/reports
+      traefik.http.routers.reports.middlewares: reports-strip
+
+      traefik.http.services.reports.loadbalancer.server.port: "8000"
+
+    # Make sure it’s on the same external network as Traefik
+    networks:
+      - ct2_ct2-net
+
+networks:
+  ct2_ct2-net:
+    external: true

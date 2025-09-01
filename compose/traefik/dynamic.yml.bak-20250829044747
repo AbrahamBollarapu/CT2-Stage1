@@ -1,0 +1,28 @@
+http:
+  routers:
+    dyn-reports:       { rule: PathPrefix(`/api/reports`),       entryPoints: [web], service: svc-reports }
+    dyn-esg:           { rule: PathPrefix(`/api/esg`),           entryPoints: [web], service: svc-esg }
+    dyn-ingest:        { rule: (PathPrefix(`/api/ingest`) || PathPrefix(`/api/ingestion`)), entryPoints: [web], service: svc-ingest }
+    dyn-evidence:      { rule: PathPrefix(`/api/evidence`),      entryPoints: [web], service: svc-evidence }
+    dyn-timeseries:    { rule: PathPrefix(`/api/timeseries`),    entryPoints: [web], service: svc-timeseries }
+    dyn-factors:       { rule: PathPrefix(`/api/factors`),       entryPoints: [web], service: svc-factors }
+    dyn-data-quality:  { rule: (PathPrefix(`/api/data-quality`) || PathPrefix(`/api/dataquality`)), entryPoints: [web], service: svc-data-quality }
+    dyn-kpi:           { rule: PathPrefix(`/api/kpi`),           entryPoints: [web], service: svc-kpi }
+    dyn-xbrl:          { rule: PathPrefix(`/api/xbrl`),          entryPoints: [web], service: svc-xbrl }
+    dyn-dash:          { rule: (PathPrefix(`/api/dash`) || PathPrefix(`/api/dashboards`)), entryPoints: [web], service: svc-dash }
+    dyn-search:        { rule: (PathPrefix(`/api/search`) || PathPrefix(`/api/search-index`)), entryPoints: [web], service: svc-search }
+    dyn-jobs:          { rule: PathPrefix(`/api/jobs`),          entryPoints: [web], service: svc-jobs }
+
+  services:
+    svc-reports:       { loadBalancer: { servers: [ { url: "http://report-compiler-service:8000" } ] } }
+    svc-esg:           { loadBalancer: { servers: [ { url: "http://esg-service:8000" } ] } }
+    svc-ingest:        { loadBalancer: { servers: [ { url: "http://ingestion-service:8000" } ] } }
+    svc-evidence:      { loadBalancer: { servers: [ { url: "http://evidence-store:8000" } ] } }
+    svc-timeseries:    { loadBalancer: { servers: [ { url: "http://time-series-service:8000" } ] } }
+    svc-factors:       { loadBalancer: { servers: [ { url: "http://emission-factors-service:8000" } ] } }
+    svc-data-quality:  { loadBalancer: { servers: [ { url: "http://data-quality-service:8000" } ] } }
+    svc-kpi:           { loadBalancer: { servers: [ { url: "http://kpi-calculation-service:8000" } ] } }
+    svc-xbrl:          { loadBalancer: { servers: [ { url: "http://xbrl-mapping-service:8000" } ] } }
+    svc-dash:          { loadBalancer: { servers: [ { url: "http://dashboards-service:8000" } ] } }
+    svc-search:        { loadBalancer: { servers: [ { url: "http://search-index-service:8000" } ] } }
+    svc-jobs:          { loadBalancer: { servers: [ { url: "http://jobs-service:8000" } ] } }

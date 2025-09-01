@@ -1,0 +1,50 @@
+$ErrorActionPreference='Stop'
+$composeDir = 'D:/CT2/compose'
+$out = @"
+services:
+  esg-service:
+    labels:
+      # ensure every esg* router strips /api/esg and wins on priority
+      - traefik.http.middlewares.esg-strip.stripPrefix.prefixes=/api/esg
+      - traefik.http.routers.esg-service.rule=PathPrefix(`/api/esg`)
+      - traefik.http.routers.esg-service.priority=2000
+      - traefik.http.routers.esg-service.middlewares=esg-strip
+      - traefik.http.routers.esg-router.rule=PathPrefix(`/api/esg`)
+      - traefik.http.routers.esg-router.priority=2000
+      - traefik.http.routers.esg-router.middlewares=esg-strip
+      - traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)
+      - traefik.http.routers.esg.priority=2000
+      - traefik.http.routers.esg.middlewares=esg-strip
+
+  data-quality-service:
+    labels:
+      # strip /api/data-quality across all possible router names
+      - traefik.http.middlewares.dq-strip.stripPrefix.prefixes=/api/data-quality
+      - traefik.http.routers.data-quality-service.rule=PathPrefix(`/api/data-quality`)
+      - traefik.http.routers.data-quality-service.priority=2000
+      - traefik.http.routers.data-quality-service.middlewares=dq-strip
+      - traefik.http.routers.data-quality.rule=PathPrefix(`/api/data-quality`)
+      - traefik.http.routers.data-quality.priority=2000
+      - traefik.http.routers.data-quality.middlewares=dq-strip
+      - traefik.http.routers.dq-router.rule=PathPrefix(`/api/data-quality`)
+      - traefik.http.routers.dq-router.priority=2000
+      - traefik.http.routers.dq-router.middlewares=dq-strip
+
+  report-compiler-service:
+    labels:
+      # strip /api/reports across all possible router names
+      - traefik.http.middlewares.reports-strip.stripPrefix.prefixes=/api/reports
+      - traefik.http.routers.report-compiler-service.rule=PathPrefix(`/api/reports`)
+      - traefik.http.routers.report-compiler-service.priority=2000
+      - traefik.http.routers.report-compiler-service.middlewares=reports-strip
+      - traefik.http.routers.reports-router.rule=PathPrefix(`/api/reports`)
+      - traefik.http.routers.reports-router.priority=2000
+      - traefik.http.routers.reports-router.middlewares=reports-strip
+      - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
+      - traefik.http.routers.reports.priority=2000
+      - traefik.http.routers.reports.middlewares=reports-strip
+"@
+if(!(Test-Path $composeDir)){ New-Item -ItemType Directory -Path $composeDir | Out-Null }
+$enc = New-Object System.Text.UTF8Encoding($false)
+[IO.File]::WriteAllText((Join-Path $composeDir 'docker-compose.prefix-force.yml'), $out, $enc)
+Write-Host "Wrote compose/docker-compose.prefix-force.yml" -ForegroundColor Green

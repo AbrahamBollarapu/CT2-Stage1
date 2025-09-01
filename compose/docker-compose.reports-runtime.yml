@@ -1,0 +1,20 @@
+services:
+  report-compiler-service:
+    # Run Node directly (avoid npm-run SIGTERM noise)
+    entrypoint: ["/sbin/tini","-g","--"]
+    command: ["node","dist/index.js"]
+
+    # Solid IPv4 healthcheck
+    healthcheck:
+      test: ["CMD-SHELL","wget -4 -qO- http://127.0.0.1:8000/ready || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+    # Ensure this service is on the same external net as Traefik
+    networks:
+      - ct2_ct2-net
+
+networks:
+  ct2_ct2-net:
+    external: true

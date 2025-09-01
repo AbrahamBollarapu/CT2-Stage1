@@ -1,0 +1,13 @@
+# docker-compose.traefik.netfix.yml
+# Ensure Traefik is attached to the same network it uses for provider lookups.
+# Your traefik command already has: --providers.docker.network=ct2_ct2-net
+
+services:
+  traefik:
+    networks:
+      - ct2_ct2-net     # attach to the expected network (replaces other networks)
+
+networks:
+  ct2_ct2-net:
+    external: true
+    name: ct2_ct2-net

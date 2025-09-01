@@ -1,0 +1,8 @@
+services:
+  report-compiler-service:
+    environment:
+      ORG_DEFAULT: demo
+
+  evidence-store:
+    environment:
+      ORG_DEFAULT: demo

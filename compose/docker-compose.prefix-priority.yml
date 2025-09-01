@@ -1,0 +1,21 @@
+services:
+  esg-service:
+    labels:
+      - traefik.http.routers.esg-service.rule=PathPrefix(/api/esg)
+      - traefik.http.routers.esg-service.priority=2000
+      - traefik.http.routers.esg-service.middlewares=esg-service-strip
+      - traefik.http.middlewares.esg-service-strip.stripPrefix.prefixes=/api/esg
+
+  data-quality-service:
+    labels:
+      - traefik.http.routers.data-quality-service.rule=PathPrefix(/api/data-quality)
+      - traefik.http.routers.data-quality-service.priority=2000
+      - traefik.http.routers.data-quality-service.middlewares=data-quality-service-strip
+      - traefik.http.middlewares.data-quality-service-strip.stripPrefix.prefixes=/api/data-quality
+
+  report-compiler-service:
+    labels:
+      - traefik.http.routers.report-compiler-service.rule=PathPrefix(/api/reports)
+      - traefik.http.routers.report-compiler-service.priority=2000
+      - traefik.http.routers.report-compiler-service.middlewares=report-compiler-service-strip
+      - traefik.http.middlewares.report-compiler-service-strip.stripPrefix.prefixes=/api/reports

@@ -1,0 +1,34 @@
+http:
+  routers:
+    fix-jobs:
+      rule: PathPrefix(`/api/jobs`)
+      priority: 3000
+      service: svc-jobs
+      middlewares:
+        - jobs-strip
+    fix-xbrl:
+      rule: PathPrefix(`/api/xbrl`)
+      priority: 3000
+      service: svc-xbrl
+      middlewares:
+        - xbrl-strip
+
+  middlewares:
+    jobs-strip:
+      stripPrefix:
+        prefixes:
+          - /api/jobs
+    xbrl-strip:
+      stripPrefix:
+        prefixes:
+          - /api/xbrl
+
+  services:
+    svc-jobs:
+      loadBalancer:
+        servers:
+          - url: "http://jobs-service:8000"
+    svc-xbrl:
+      loadBalancer:
+        servers:
+          - url: "http://xbrl-mapping-service:8000"

@@ -1,0 +1,7 @@
+{
+  "features": {
+    "auth": { "devMode": true },
+    "alerts": { "enabled": false },
+    "utility": { "pullEnabled": false }
+  }
+}

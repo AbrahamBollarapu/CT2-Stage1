@@ -1,0 +1,21 @@
+networks:
+  ct2-net: {}
+
+services:
+  traefik:
+    networks:
+      - default
+      - ct2-net
+    # tell Traefik which Docker network to use to reach services
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=${COMPOSE_PROJECT_NAME}_ct2-net
+      - --providers.file.filename=/etc/traefik/dynamic/dynamic.yml
+      - --entrypoints.web.address=:8081
+      - --entrypoints.admin.address=:8090
+      - --api.dashboard=true
+
+  evidence-store:
+    networks:
+      - ct2-net

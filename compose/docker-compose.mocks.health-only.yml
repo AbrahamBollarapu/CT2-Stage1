@@ -1,0 +1,206 @@
+services:
+  # ─────────── ESG ───────────
+  esg-health-mock:
+    image: node:20-alpine
+    working_dir: /app
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    environment:
+      API_PREFIX: /api/esg
+      SERVICE_NAME: esg
+      SERVICE_VERSION: 0.0.1
+      PORT: "8000"
+      HOST: 0.0.0.0
+    networks: [ct2-net]
+    volumes:
+      - type: bind
+        source: D:\CT2\tools\mocks\mock-health.mjs
+        target: /app/mock-health.mjs
+        read_only: true
+        bind: { create_host_path: true }
+    labels:
+      - traefik.enable=true
+      # Exact path match so we ONLY handle /health and do NOT hijack other routes
+      - traefik.http.routers.esg-health.rule=Path(`/api/esg/health`)
+      - traefik.http.routers.esg-health.entrypoints=web
+      - traefik.http.routers.esg-health.priority=6500
+      - traefik.http.services.esg-health.loadbalancer.server.port=8000
+
+  # ─────── Data Quality ───────
+  dq-health-mock:
+    image: node:20-alpine
+    working_dir: /app
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    environment:
+      API_PREFIX: /api/data-quality
+      SERVICE_NAME: data-quality
+      SERVICE_VERSION: 0.0.1
+      PORT: "8000"
+      HOST: 0.0.0.0
+    networks: [ct2-net]
+    volumes:
+      - type: bind
+        source: D:\CT2\tools\mocks\mock-health.mjs
+        target: /app/mock-health.mjs
+        read_only: true
+        bind: { create_host_path: true }
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dq-health.rule=Path(`/api/data-quality/health`)
+      - traefik.http.routers.dq-health.entrypoints=web
+      - traefik.http.routers.dq-health.priority=6500
+      - traefik.http.services.dq-health.loadbalancer.server.port=8000
+
+  # ─────────── Jobs ───────────
+  jobs-health-mock:
+    image: node:20-alpine
+    working_dir: /app
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    environment:
+      API_PREFIX: /api/jobs
+      SERVICE_NAME: jobs
+      SERVICE_VERSION: 0.0.1
+      PORT: "8000"
+      HOST: 0.0.0.0
+    networks: [ct2-net]
+    volumes:
+      - type: bind
+        source: D:\CT2\tools\mocks\mock-health.mjs
+        target: /app/mock-health.mjs
+        read_only: true
+        bind: { create_host_path: true }
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.jobs-health.rule=Path(`/api/jobs/health`)
+      - traefik.http.routers.jobs-health.entrypoints=web
+      - traefik.http.routers.jobs-health.priority=6500
+      - traefik.http.services.jobs-health.loadbalancer.server.port=8000
+
+  # ─────────── XBRL ───────────
+  xbrl-health-mock:
+    image: node:20-alpine
+    working_dir: /app
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    environment:
+      API_PREFIX: /api/xbrl
+      SERVICE_NAME: xbrl
+      SERVICE_VERSION: 0.0.1
+      PORT: "8000"
+      HOST: 0.0.0.0
+    networks: [ct2-net]
+    volumes:
+      - type: bind
+        source: D:\CT2\tools\mocks\mock-health.mjs
+        target: /app/mock-health.mjs
+        read_only: true
+        bind: { create_host_path: true }
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.xbrl-health.rule=Path(`/api/xbrl/health`)
+      - traefik.http.routers.xbrl-health.entrypoints=web
+      - traefik.http.routers.xbrl-health.priority=6500
+      - traefik.http.services.xbrl-health.loadbalancer.server.port=8000
+
+  # ───── KPI Calculation ─────
+  kpi-health-mock:
+    image: node:20-alpine
+    working_dir: /app
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    environment:
+      API_PREFIX: /api/kpi
+      SERVICE_NAME: kpi
+      SERVICE_VERSION: 0.0.1
+      PORT: "8000"
+      HOST: 0.0.0.0
+    networks: [ct2-net]
+    volumes:
+      - type: bind
+        source: D:\CT2\tools\mocks\mock-health.mjs
+        target: /app/mock-health.mjs
+        read_only: true
+        bind: { create_host_path: true }
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.kpi-health.rule=Path(`/api/kpi/health`)
+      - traefik.http.routers.kpi-health.entrypoints=web
+      - traefik.http.routers.kpi-health.priority=6500
+      - traefik.http.services.kpi-health.loadbalancer.server.port=8000
+
+  # ───────── Ingestion ─────────
+  ingest-health-mock:
+    image: node:20-alpine
+    working_dir: /app
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    environment:
+      API_PREFIX: /api/ingest
+      SERVICE_NAME: ingest
+      SERVICE_VERSION: 0.0.1
+      PORT: "8000"
+      HOST: 0.0.0.0
+    networks: [ct2-net]
+    volumes:
+      - type: bind
+        source: D:\CT2\tools\mocks\mock-health.mjs
+        target: /app/mock-health.mjs
+        read_only: true
+        bind: { create_host_path: true }
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ingest-health.rule=Path(`/api/ingest/health`)
+      - traefik.http.routers.ingest-health.entrypoints=web
+      - traefik.http.routers.ingest-health.priority=6500
+      - traefik.http.services.ingest-health.loadbalancer.server.port=8000
+
+  # ───────── Dashboards ─────────
+  dash-health-mock:
+    image: node:20-alpine
+    working_dir: /app
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    environment:
+      API_PREFIX: /api/dash
+      SERVICE_NAME: dashboards
+      SERVICE_VERSION: 0.0.1
+      PORT: "8000"
+      HOST: 0.0.0.0
+    networks: [ct2-net]
+    volumes:
+      - type: bind
+        source: D:\CT2\tools\mocks\mock-health.mjs
+        target: /app/mock-health.mjs
+        read_only: true
+        bind: { create_host_path: true }
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dash-health.rule=Path(`/api/dash/health`)
+      - traefik.http.routers.dash-health.entrypoints=web
+      - traefik.http.routers.dash-health.priority=6500
+      - traefik.http.services.dash-health.loadbalancer.server.port=8000
+
+  # ─────── Search Index ───────
+  search-health-mock:
+    image: node:20-alpine
+    working_dir: /app
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    environment:
+      API_PREFIX: /api/search
+      SERVICE_NAME: search
+      SERVICE_VERSION: 0.0.1
+      PORT: "8000"
+      HOST: 0.0.0.0
+    networks: [ct2-net]
+    volumes:
+      - type: bind
+        source: D:\CT2\tools\mocks\mock-health.mjs
+        target: /app/mock-health.mjs
+        read_only: true
+        bind: { create_host_path: true }
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.search-health.rule=Path(`/api/search/health`)
+      - traefik.http.routers.search-health.entrypoints=web
+      - traefik.http.routers.search-health.priority=6500
+      - traefik.http.services.search-health.loadbalancer.server.port=8000
+
+networks:
+  ct2-net:
+    external: true
+    name: ct2_ct2-net

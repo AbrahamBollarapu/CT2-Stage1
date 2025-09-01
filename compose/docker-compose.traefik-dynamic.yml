@@ -1,0 +1,7 @@
+services:
+  traefik:
+    volumes:
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+    command:
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"

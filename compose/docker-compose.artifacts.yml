@@ -1,0 +1,20 @@
+services:
+  report-compiler-service:
+    volumes:
+      - type: volume
+        source: ct2_artifacts
+        target: /var/lib/ct2/artifacts
+    environment:
+      ARTIFACT_DIR: /var/lib/ct2/artifacts
+
+  evidence-store:
+    volumes:
+      - type: volume
+        source: ct2_artifacts
+        target: /var/lib/ct2/artifacts
+    environment:
+      ARTIFACT_DIR: /var/lib/ct2/artifacts
+
+volumes:
+  ct2_artifacts:
+    name: ct2_artifacts

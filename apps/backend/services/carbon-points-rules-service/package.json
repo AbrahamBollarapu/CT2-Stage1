@@ -1,0 +1,21 @@
+{
+  "name": "@ct2/carbon-points-rules-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "check": "tsc -p . --noEmit"
+  },
+  "dependencies": {
+    "fastify": "^4.28.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "tsx": "^4.9.3",
+    "typescript": "^5.4.5"
+  },
+  "engines": { "node": ">=20.0.0" }
+}

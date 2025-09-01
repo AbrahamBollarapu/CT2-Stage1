@@ -1,0 +1,132 @@
+services:
+  ingestion-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  evidence-store:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  esg-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  time-series-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  emission-factors-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  data-quality-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  kpi-calculation-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  report-compiler-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  xbrl-mapping-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  dashboards-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  search-index-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  jobs-service:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:8000/ready || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped

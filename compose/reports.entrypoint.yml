@@ -1,0 +1,19 @@
+﻿services:
+  report-compiler-service:
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - SERVICE_PREFIX=/api/reports
+    entrypoint: ["sh","-lc"]
+    command:
+      - >
+        node dist/index.js ||
+        node dist/server.js ||
+        node server.js ||
+        node -e "const express=require('express');const app=express();app.use(express.json());
+        const pre=process.env.SERVICE_PREFIX||'/api/reports';const port=+(process.env.PORT||8000);
+        app.get(pre+'/health',(_q,r)=>r.json({ok:true,service:'reports',shim:true}));
+        app.post(pre+'/build',(q,r)=>{const b=q.body||{};if(!b.template||!b.period){return r.status(400)
+        .json({ok:false,error:'template and period are required'})};r.json({ok:true,artifactId:'rep_'+Date.now(),
+        status:'queued',template:b.template,period:b.period,shim:true})});
+        app.listen(port,'0.0.0.0',()=>console.log('[reports shim]',port,pre));"

@@ -1,0 +1,11 @@
+﻿openapi: 3.0.3
+info:
+  title: device-ingest-gateway
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      summary: Health
+      responses:
+        "200":
+          description: ok

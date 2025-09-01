@@ -1,0 +1,8 @@
+services:
+  traefik:
+    networks:
+      - ct2_ct2-net
+
+networks:
+  ct2_ct2-net:
+    external: true

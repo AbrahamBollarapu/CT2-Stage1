@@ -1,0 +1,15 @@
+entryPoints:
+  web:
+    address: ":8081"
+  traefik:
+    address: ":8090"
+
+api:
+  dashboard: true
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: ct2-net
+  file:
+    filename: /etc/traefik/dynamic.yml

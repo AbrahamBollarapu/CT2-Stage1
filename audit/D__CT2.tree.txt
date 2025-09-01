@@ -1,0 +1,878 @@
+﻿Folder PATH listing for volume DATA
+Volume serial number is 00000009 62A6:1D2A
+D:\CT2
+|   .editorconfig
+|   .gitignore
+|   docker-compose.build-and-run.yml
+|   docker-compose.labels.yml
+|   docker-compose.override.yml
+|   docker-compose.override.yml.bak
+|   docker-compose.run-dist.yml
+|   docker-compose.sanitize-build-run.yml
+|   docker-compose.traefik.override.yml
+|   docker-compose.traefik.yml
+|   docker-compose.tsnode-cjs.yml
+|   docker-compose.tsnode-hotfix.yml
+|   docker-compose.yml
+|   merged.yml
+|   package.json
+|   pnpm-workspace.yaml.bak
+|   README.md
+|   services-list.txt
+|   
++---.envs
+|   +---dev
+|   +---prod
+|   \---staging
++---apps
+|   +---backend
+|   |   +---gateway
+|   |   +---services
+|   |   |   +---alerts-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---analytics-query-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---api-keys-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---authz-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   .npmrc
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   README.md
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   app.ts
+|   |   |   |       |   config.ts
+|   |   |   |       |   index.ts
+|   |   |   |       |   routes.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---blockchain-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   .npmrc
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   README.md
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   app.ts
+|   |   |   |       |   config.ts
+|   |   |   |       |   index.ts
+|   |   |   |       |   routes.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---brsr-adapter-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   .npmrc
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   README.md
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   app.ts
+|   |   |   |       |   config.ts
+|   |   |   |       |   index.ts
+|   |   |   |       |   routes.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---carbon-points-rules-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   .npmrc
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   README.md
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   app.ts
+|   |   |   |       |   config.ts
+|   |   |   |       |   index.ts
+|   |   |   |       |   routes.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---client-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---compliance-copilot-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---dashboards-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---data-import-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---data-quality-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   Dockerfile.bak
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---data-warehouse-writer-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---device-catalog-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---device-ingest-gateway
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---emission-factors-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---esg-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   server.mjs
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---evidence-store
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   Dockerfile.bak
+|   |   |   |   |   package-lock.json
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---facility-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---file-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   app.ts
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---governance-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package-lock.json
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---ingestion-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   Dockerfile.bak
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---jobs-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---kpi-calculation-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   Dockerfile.bak
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---marketplace-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---materiality-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---notification-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---org-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---payment-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---procurement-connector-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---report-compiler-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   server.mjs
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---reporting-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---risk-mapping-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---scheduler-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---search-index-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---supplier-assessment-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---supplier-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---time-series-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   Dockerfile.bak
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---user-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---utility-adapter-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---verification-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   +---wallet-service
+|   |   |   |   |   .dockerignore
+|   |   |   |   |   .env.example
+|   |   |   |   |   Dockerfile
+|   |   |   |   |   package.json
+|   |   |   |   |   tsconfig.json
+|   |   |   |   |   
+|   |   |   |   +---openapi
+|   |   |   |   |       openapi.yaml
+|   |   |   |   |       
+|   |   |   |   \---src
+|   |   |   |       |   index.ts
+|   |   |   |       |   server.ts
+|   |   |   |       |   
+|   |   |   |       \---api
+|   |   |   |           \---routes
+|   |   |   \---xbrl-mapping-service
+|   |   |       |   .dockerignore
+|   |   |       |   .env.example
+|   |   |       |   Dockerfile
+|   |   |       |   Dockerfile.bak
+|   |   |       |   package-lock.json
+|   |   |       |   package.json
+|   |   |       |   tsconfig.json
+|   |   |       |   
+|   |   |       +---openapi
+|   |   |       |       openapi.yaml
+|   |   |       |       
+|   |   |       \---src
+|   |   |           |   index.ts
+|   |   |           |   server.ts
+|   |   |           |   
+|   |   |           \---api
+|   |   |               \---routes
+|   |   \---_archive
+|   |       \---hello
+|   |           |   .dockerignore
+|   |           |   Dockerfile
+|   |           |   package.json
+|   |           |   tsconfig.json
+|   |           |   
+|   |           \---src
+|   |                   index.js
+|   |                   index.ts
+|   |                   
+|   \---frontend
+|       +---admin
+|       \---web
++---audit
+|       D__COG.flat.csv
+|       D__COG.tree.txt
+|       D__CT2.tree.txt
+|       
++---build-logs
++---docs
+|       CogTechAI_Master_Guide_v1.1.md
+|       master-doc.md
+|       MVP_Stages.md
+|       
++---evidence-store
+|   |   Dockerfile
+|   |   package.json
+|   |   tsconfig.json
+|   |   
+|   +---src
+|   |       app.ts
+|   |       server.ts
+|   |       
+|   +---src.bak-20250822-030509
+|   |       app.ts
+|   |       server.ts
+|   |       
+|   +---src.bak-20250822-030526
+|   |       app.ts
+|   |       server.ts
+|   |       
+|   \---src.bak-20250822-030617
+|           app.ts
+|           server.ts
+|           
++---governance-service
+|   |   Dockerfile
+|   |   package.json
+|   |   tsconfig.json
+|   |   
+|   +---src
+|   |       app.ts
+|   |       server.ts
+|   |       
+|   +---src.bak-20250822-030509
+|   |       app.ts
+|   |       server.ts
+|   |       
+|   +---src.bak-20250822-030526
+|   |       app.ts
+|   |       server.ts
+|   |       
+|   \---src.bak-20250822-030617
+|           app.ts
+|           server.ts
+|           
++---infra
+|   +---docker
+|   |   +---compose
+|   |   |       docker-compose.dev.yml
+|   |   |       docker-compose.stage1.yml
+|   |   |       
+|   |   +---db
+|   |   \---traefik
+|   |           traefik.yml
+|   |           
+|   \---k8s
+|       +---base
+|       \---overlays
+|           +---dev
+|           \---prod
++---openapi
+|       openapi.yaml
+|       
++---packages
+|   +---config
+|   +---sdk
+|   +---types
+|   +---ui
+|   \---utils
++---scripts
+|       dev.ps1
+|       scaffold-service.ps1
+|       
++---tests
+|   \---e2e
+|       +---playwright
+|       \---postman
++---xbrl-mapping-service
+|   |   Dockerfile
+|   |   package.json
+|   |   tsconfig.json
+|   |   
+|   +---src
+|   |       app.ts
+|   |       server.ts
+|   |       
+|   +---src.bak-20250822-030509
+|   |       app.ts
+|   |       server.ts
+|   |       
+|   +---src.bak-20250822-030526
+|   |       app.ts
+|   |       server.ts
+|   |       
+|   \---src.bak-20250822-030617
+|           app.ts
+|           server.ts
+|           
+\---_trees
+        apps_backend_tree.txt
+        apps_frontend_tree.txt
+        backend_tree.txt
+        frontend_tree.txt
+        infra_docker_tree.txt
+        root_tree.txt
+        

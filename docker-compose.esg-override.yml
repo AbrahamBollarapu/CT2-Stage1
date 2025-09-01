@@ -1,0 +1,24 @@
+# docker-compose.esg-override.yml
+services:
+  esg-service:
+    build:
+      context: ../apps/backend/services/esg-service
+      dockerfile: Dockerfile
+    image: ct2-esg-service
+    environment:
+      SERVICE_NAME: esg-service
+      SERVICE_PREFIX: /api/esg
+      PORT: "8000"
+    networks: [ct2-net]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ct2-net
+      traefik.http.routers.esg.rule: PathPrefix(`/api/esg`)
+      traefik.http.routers.esg.entrypoints: web
+      traefik.http.routers.esg.middlewares: esg-strip
+      traefik.http.middlewares.esg-strip.stripprefix.prefixes: /api/esg
+      traefik.http.middlewares.esg-strip.stripprefix.forceSlash: "false"
+      traefik.http.services.esg.loadbalancer.server.port: "8000"
+
+networks:
+  ct2-net: {}

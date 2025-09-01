@@ -1,0 +1,63 @@
+﻿# docker-compose.router-service.yml
+services:
+  traefik:
+    volumes:
+      # Bind the whole dynamic dir (works with read-only rootfs)
+      - type: bind
+        source: ./traefik/dynamic
+        target: /etc/traefik/dynamic
+        read_only: true
+
+  time-series-service:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ts-router.service: ts-svc
+      traefik.http.services.ts-svc.loadbalancer.server.port: "8000"
+
+  ingestion-service:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ingest-router.service: ingest-svc
+      traefik.http.services.ingest-svc.loadbalancer.server.port: "8000"
+
+  kpi-calculation-service:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.kpi-router.service: kpi-svc
+      traefik.http.services.kpi-svc.loadbalancer.server.port: "8000"
+
+  search-index-service:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.search-router.service: search-svc
+      traefik.http.services.search-svc.loadbalancer.server.port: "8000"
+
+  evidence-store:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.evidence-router.rule: PathPrefix(`/api/evidence`)
+      traefik.http.routers.evidence-router.entrypoints: web
+      traefik.http.routers.evidence-router.service: evidence-svc
+      traefik.http.routers.evidence-router.middlewares: evidence-strip
+      traefik.http.middlewares.evidence-strip.stripPrefix.prefixes: /api/evidence
+      traefik.http.services.evidence-svc.loadbalancer.server.port: "8000"
+
+  dashboards-service:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.dash-router.service: dash-svc
+      traefik.http.services.dash-svc.loadbalancer.server.port: "8000"
+
+  jobs-service:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.jobs-router.rule: PathPrefix(`/api/jobs`)
+      traefik.http.routers.jobs-router.service: jobs-svc
+      traefik.http.services.jobs-svc.loadbalancer.server.port: "8000"
+
+  xbrl-mapping-service:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.xbrl-router.rule: PathPrefix(`/api/xbrl`)
+      traefik.http.routers.xbrl-router.service: xbrl-svc
+      traefik.http.services.xbrl-svc.loadbalancer.server.port: "8000"

@@ -1,0 +1,8 @@
+﻿services:
+  ingestion-service:        { environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/ingest" ] }
+  emission-factors-service: { environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/factors" ] }
+  data-quality-service:     { environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/data-quality" ] }
+  kpi-calculation-service:  { environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/kpi" ] }
+  dashboards-service:       { environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/dash" ] }
+  search-index-service:     { environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/search" ] }
+  jobs-service:             { environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/jobs" ] }

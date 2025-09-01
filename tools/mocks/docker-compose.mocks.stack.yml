@@ -1,0 +1,90 @@
+# docker-compose.mocks.stack.yml
+# Clean overlay: use ONE network (ct2-net → actual name ct2_ct2-net),
+# force mocks to run the node file, keep rate-limit on /api/reports.
+
+services:
+  # Reports: router + rate limiter on the same network
+  report-compiler-service:
+    networks: [ct2-net]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
+      - traefik.http.routers.reports.entrypoints=web
+      - traefik.http.routers.reports.priority=6000
+      - traefik.http.routers.reports.middlewares=reports-strip,rate-reports
+      - traefik.http.middlewares.reports-strip.stripprefix.prefixes=/api/reports
+      - traefik.http.middlewares.rate-reports.ratelimit.average=50
+      - traefik.http.middlewares.rate-reports.ratelimit.burst=25
+      - traefik.http.services.reports.loadbalancer.server.port=8000
+
+  # Mock: Time Series  (/api/time-series/{health,ready,routes})
+  time-series-service:
+    build: null                 # ignore any base build; run the mock directly
+    image: node:20-alpine
+    container_name: ct2-time-series-service-1
+    working_dir: /app
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    command: []
+    environment:
+      - SERVICE_NAME=time-series
+      - API_PREFIX=/api/time-series
+      - PORT=8000
+      - SERVICE_VERSION=0.0.1
+    volumes:
+      - ../tools/mocks/mock-health.mjs:/app/mock-health.mjs:ro
+    restart: unless-stopped
+    networks: [ct2-net]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.time-series.rule=PathPrefix(`/api/time-series`)
+      - traefik.http.routers.time-series.entrypoints=web
+      - traefik.http.routers.time-series.priority=6000
+      - traefik.http.routers.time-series.middlewares=time-series-strip
+      - traefik.http.middlewares.time-series-strip.stripprefix.prefixes=/api/time-series
+      - traefik.http.services.time-series.loadbalancer.server.port=8000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/api/time-series/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+  # Mock: Emission Factors  (/api/emission-factors/{health,ready,routes})
+  emission-factors-service:
+    build: null
+    image: node:20-alpine
+    container_name: ct2-emission-factors-service-1
+    working_dir: /app
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    command: []
+    environment:
+      - SERVICE_NAME=emission-factors
+      - API_PREFIX=/api/emission-factors
+      - PORT=8000
+      - SERVICE_VERSION=0.0.1
+    volumes:
+      - ../tools/mocks/mock-health.mjs:/app/mock-health.mjs:ro
+    restart: unless-stopped
+    networks: [ct2-net]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.emission-factors.rule=PathPrefix(`/api/emission-factors`)
+      - traefik.http.routers.emission-factors.entrypoints=web
+      - traefik.http.routers.emission-factors.priority=6000
+      - traefik.http.routers.emission-factors.middlewares=emission-factors-strip
+      - traefik.http.middlewares.emission-factors-strip.stripprefix.prefixes=/api/emission-factors
+      - traefik.http.services.emission-factors.loadbalancer.server.port=8000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/api/emission-factors/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+  # Traefik (defined in your traefik compose) — ensure it's on the SAME network
+  traefik:
+    networks: [ct2-net]
+
+networks:
+  # Map the logical 'ct2-net' to the actual docker network name Traefik uses
+  ct2-net:
+    name: ct2_ct2-net
+    driver: bridge

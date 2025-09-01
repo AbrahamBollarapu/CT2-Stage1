@@ -1,0 +1,6 @@
+http:
+  middlewares:
+    dev-auth:
+      headers:
+        customRequestHeaders:
+          x-ct2-dev-token: "${DEV_AUTH_TOKEN}"

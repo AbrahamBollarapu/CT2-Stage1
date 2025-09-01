@@ -1,0 +1,124 @@
+# D:\CT2\compose\traefik\dynamic\dynamic.yml
+http:
+  routers:
+    # ---- existing & working ----
+    fix-esg:
+      rule: PathPrefix(`/api/esg`)
+      priority: 3000
+      service: svc-esg
+      middlewares: [esg-strip]
+
+    fix-data-quality:
+      rule: PathPrefix(`/api/data-quality`)
+      priority: 3000
+      service: svc-dq
+      middlewares: [dq-strip]
+
+    fix-reports:
+      rule: PathPrefix(`/api/reports`)
+      priority: 3000
+      service: svc-reports
+      middlewares: [reports-strip]
+
+    fix-emf:
+      rule: PathPrefix(`/api/emission-factors`)
+      priority: 3000
+      service: svc-emf
+      middlewares: [emf-strip]
+
+    alias-factors:
+      rule: PathPrefix(`/api/factors`)
+      priority: 3000
+      service: svc-emf
+      middlewares: [factors-rewrite]
+
+    fix-jobs:
+      rule: PathPrefix(`/api/jobs`)
+      priority: 3000
+      service: svc-jobs
+      middlewares: [jobs-strip]
+
+    fix-xbrl:
+      rule: PathPrefix(`/api/xbrl`)
+      priority: 3000
+      service: svc-xbrl
+      middlewares: [xbrl-strip]
+
+    # ---- NEW: Evidence ----
+    fix-evidence:
+      rule: PathPrefix(`/api/evidence`)
+      priority: 3000
+      service: svc-evidence
+      middlewares: [evidence-strip]
+
+  middlewares:
+    esg-strip:
+      stripPrefix:
+        prefixes: ["/api/esg"]
+
+    dq-strip:
+      stripPrefix:
+        prefixes: ["/api/data-quality"]
+
+    reports-strip:
+      stripPrefix:
+        prefixes: ["/api/reports"]
+
+    emf-strip:
+      stripPrefix:
+        prefixes: ["/api/emission-factors"]
+
+    factors-rewrite:
+      replacePathRegex:
+        regex: "^/api/factors(/|$)(.*)"
+        replacement: "/factors/$2"
+
+    jobs-strip:
+      stripPrefix:
+        prefixes: ["/api/jobs"]
+
+    xbrl-strip:
+      stripPrefix:
+        prefixes: ["/api/xbrl"]
+
+    # NEW
+    evidence-strip:
+      stripPrefix:
+        prefixes: ["/api/evidence"]
+
+  services:
+    svc-esg:
+      loadBalancer:
+        servers:
+          - url: "http://esg-service:8000"
+
+    svc-dq:
+      loadBalancer:
+        servers:
+          - url: "http://data-quality-service:8000"
+
+    svc-reports:
+      loadBalancer:
+        servers:
+          - url: "http://report-compiler-service:8000"
+
+    svc-emf:
+      loadBalancer:
+        servers:
+          - url: "http://emission-factors-service:8000"
+
+    svc-jobs:
+      loadBalancer:
+        servers:
+          - url: "http://jobs-service:8000"
+
+    svc-xbrl:
+      loadBalancer:
+        servers:
+          - url: "http://xbrl-mapping-service:8000"
+
+    # NEW
+    svc-evidence:
+      loadBalancer:
+        servers:
+          - url: "http://evidence-store:8000"

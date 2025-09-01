@@ -1,0 +1,180 @@
+﻿openapi: 3.0.3
+info:
+  title: CogTechAI Reports API (Stage-1)
+  version: 0.1.0
+  description: |
+    S1 stub for the Reports service routed via Traefik on :8081.
+    - **Auth**: Not required in S1 (devMode). Keep bearer for S2.
+    - **Artifact lifecycle**: stub .txt immediately, final .pdf shortly after.
+servers:
+  - url: http://localhost:8081
+    description: Traefik web entrypoint
+tags:
+  - name: Reports
+    description: Build, status, and introspection
+
+paths:
+  /api/reports/health:
+    get:
+      tags: [Reports]
+      summary: Liveness
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HealthResponse'}
+              examples:
+                ok:
+                  value: { ok: true, service: "report-compiler-service", version: "1.0.0" }
+
+  /api/reports/ready:
+    get:
+      tags: [Reports]
+      summary: Readiness
+      responses:
+        '200':
+          description: Ready
+
+  /api/reports/routes:
+    get:
+      tags: [Reports]
+      summary: Introspection of registered routes
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  service: { type: string }
+                  base: { type: string }
+                  routes:
+                    type: array
+                    items: { type: string }
+              examples:
+                demo:
+                  value:
+                    ok: true
+                    service: report-compiler-service
+                    base: /
+                    routes: ["/health", "/ready", "/routes", "/status/:artifactId"]
+
+  /api/reports/build:
+    post:
+      tags: [Reports]
+      summary: Build a report artifact
+      description: |
+        Starts a report build. Returns an `artifactId` immediately.
+        In S1, the service writes a stub `.txt` immediately and final `.pdf` shortly after.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/BuildRequest'}
+            examples:
+              minimal:
+                value: { template: "truststrip", period: "2024Q4" }
+      responses:
+        '200':
+          description: Accepted (S1 returns 200 with artifactId)
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/BuildResponse'}
+              examples:
+                ok:
+                  value: { ok: true, artifactId: "e91fe03614d6584059da21e4" }
+        '400':
+          description: Bad request
+          content: { application/json: { schema: {$ref: '#/components/schemas/Error'} } }
+
+  /api/reports/status/{artifactId}:
+    get:
+      tags: [Reports]
+      summary: Poll build status
+      parameters:
+        - in: path
+          name: artifactId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/StatusResponse'}
+              examples:
+                processing:
+                  value: { ok: true, artifactId: "abc123", state: "processing" }
+                completed:
+                  value:
+                    ok: true
+                    artifactId: "abc123"
+                    state: completed
+                    evidenceUrl: "/api/evidence/artifacts/abc123/content"
+        '404':
+          description: Not found
+          content: { application/json: { schema: {$ref: '#/components/schemas/Error'} } }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    BuildRequest:
+      type: object
+      required: [template, period]
+      properties:
+        template: { type: string, example: "truststrip" }
+        period:   { type: string, example: "2024Q4" }
+        org_id:   { type: string, description: "S2+ optional org scoping" }
+    BuildResponse:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+        artifactId: { type: string, example: "e91fe03614d6584059da21e4" }
+    StatusResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        artifactId: { type: string }
+        state:
+          type: string
+          enum: [queued, processing, completed, error]
+        evidenceUrl:
+          type: string
+          description: Direct link to evidence content (present when `state=completed`)
+          example: /api/evidence/artifacts/e91fe03614d6584059da21e4/content
+        error:
+          type: string
+    HealthResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        service: { type: string }
+        version: { type: string }
+        uptime_s: { type: number }
+    Error:
+      type: object
+      properties:
+        ok: { type: boolean, example: false }
+        error: { type: string }
+
+security: []  # S1: no auth. For S2 enable: - bearerAuth
+x-codeSamples:
+  - lang: PowerShell
+    label: Build + fetch
+    source: |
+      $base="http://localhost:8081"
+      $resp = Invoke-RestMethod -Method POST -Uri "$base/api/reports/build" -Body (@{template="truststrip";period="2024Q4"}|ConvertTo-Json) -ContentType "application/json"
+      $id = $resp.artifactId
+      do {
+        Start-Sleep 1
+        $s = Invoke-RestMethod -Method GET -Uri "$base/api/reports/status/$id"
+      } while ($s.state -ne "completed")
+      Invoke-WebRequest -UseBasicParsing -OutFile "$env:TEMP\$id.pdf" -Uri "$base/api/evidence/artifacts/$id/content"

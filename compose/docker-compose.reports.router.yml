@@ -1,0 +1,18 @@
+﻿services:
+  report-compiler-service:
+    networks: [ct2-net]   # must match Traefik's --providers.docker.network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
+      - traefik.http.routers.reports.entrypoints=web
+      - traefik.http.routers.reports.priority=6000
+      - traefik.http.routers.reports.middlewares=reports-strip,rate-reports
+      - traefik.http.middlewares.reports-strip.stripprefix.prefixes=/api/reports
+      - traefik.http.middlewares.rate-reports.ratelimit.average=50
+      - traefik.http.middlewares.rate-reports.ratelimit.burst=25
+      - traefik.http.services.reports.loadbalancer.server.port=8000
+
+networks:
+  ct2-net:
+    external: true
+    name: ct2_ct2-net

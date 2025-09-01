@@ -1,0 +1,80 @@
+services:
+  xbrl-mapping-service:
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    entrypoint:
+      - sh
+      - -lc
+      - |
+        set -e
+        # --- sanitize TS sources ---
+        cat >/tmp/scrub.sh <<'EOS'
+        #!/bin/sh
+        set -e
+        find /app/src -type f -name '*.ts' | while read -r f; do
+          # Strip UTF-8 BOM
+          if [ "$(head -c3 "$$f" | od -An -t x1 | tr -d ' \n')" = "efbbbf" ]; then
+            tail -c +4 "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f"
+          fi
+          # CRLF -> LF
+          tr -d '\r' < "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f"
+          # Smart quotes -> ASCII
+          sed -i "s//'/g; s//'/g; s/?/\"/g; s/?/\"/g" "$$f"
+        done
+        EOS
+        sh /tmp/scrub.sh
+
+        # --- compile to CJS & run ---
+        npx tsc --module commonjs --outDir dist || (npm i -D typescript && npx tsc --module commonjs --outDir dist)
+        exec node dist/server.js
+
+  governance-service:
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    entrypoint:
+      - sh
+      - -lc
+      - |
+        set -e
+        cat >/tmp/scrub.sh <<'EOS'
+        #!/bin/sh
+        set -e
+        find /app/src -type f -name '*.ts' | while read -r f; do
+          if [ "$(head -c3 "$$f" | od -An -t x1 | tr -d ' \n')" = "efbbbf" ]; then
+            tail -c +4 "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f"
+          fi
+          tr -d '\r' < "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f"
+          sed -i "s//'/g; s//'/g; s/?/\"/g; s/?/\"/g" "$$f"
+        done
+        EOS
+        sh /tmp/scrub.sh
+
+        npx tsc --module commonjs --outDir dist || (npm i -D typescript && npx tsc --module commonjs --outDir dist)
+        exec node dist/server.js
+
+  evidence-store:
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    entrypoint:
+      - sh
+      - -lc
+      - |
+        set -e
+        cat >/tmp/scrub.sh <<'EOS'
+        #!/bin/sh
+        set -e
+        find /app/src -type f -name '*.ts' | while read -r f; do
+          if [ "$(head -c3 "$$f" | od -An -t x1 | tr -d ' \n')" = "efbbbf" ]; then
+            tail -c +4 "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f"
+          fi
+          tr -d '\r' < "$$f" > "$$f.tmp" && mv "$$f.tmp" "$$f"
+          sed -i "s//'/g; s//'/g; s/?/\"/g; s/?/\"/g" "$$f"
+        done
+        EOS
+        sh /tmp/scrub.sh
+
+        npx tsc --module commonjs --outDir dist || (npm i -D typescript && npx tsc --module commonjs --outDir dist)
+        exec node dist/server.js

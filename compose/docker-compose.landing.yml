@@ -1,0 +1,24 @@
+﻿services:
+  landing-service:
+    image: nginx:1.27-alpine
+    container_name: ct2-landing-service-1
+    networks: [ct2-net]
+    volumes:
+      - type: bind
+        source: D:\CT2\apps\frontend\landing
+        target: /usr/share/nginx/html
+        read_only: true
+        bind:
+          create_host_path: true
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.webroot.rule=PathPrefix(`/`)
+      - traefik.http.routers.webroot.entrypoints=web
+      # Lower priority than API routers (which are 6000) so /api/* wins
+      - traefik.http.routers.webroot.priority=10
+      - traefik.http.services.webroot.loadbalancer.server.port=80
+
+networks:
+  ct2-net:
+    external: true
+    name: ct2_ct2-net

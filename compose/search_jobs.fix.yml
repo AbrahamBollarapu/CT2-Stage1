@@ -1,0 +1,24 @@
+﻿services:
+  search-index-service:
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - SERVICE_PREFIX=/api/search
+    command: ["sh","-lc","node dist/index.js || node dist/server.js || node server.js"]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.search.rule=PathPrefix(/api/search) || PathPrefix(/api/search-index)
+      - traefik.http.services.search-index-service.loadbalancer.server.port=8000
+
+  jobs-service:
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - SERVICE_PREFIX=/api/jobs
+    command: ["sh","-lc","node dist/index.js || node dist/server.js || node server.js"]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.jobs.rule=PathPrefix(/api/jobs)
+      - traefik.http.services.jobs-service.loadbalancer.server.port=8000

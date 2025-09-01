@@ -1,0 +1,199 @@
+services:
+  ingestion-service:
+    build:
+      context: ../apps/backend/services/ingestion-service
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - HOST=0.0.0.0
+      - REQUIRE_DEV_KEY=true
+      - DEV_API_KEY=dev-123
+    ports: ["8040:8000"]
+    volumes:
+      - evidence-data:/app/evidence-data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ingest-router.rule=PathPrefix(`/api/ingest`)
+      - traefik.http.routers.ingest-router.priority=2000
+      - traefik.http.routers.ingest-router.service=ingest-svc
+      - traefik.http.middlewares.ingest-rewrite.replacepathregex.regex=^/api/ingest(/|$)(.*)
+      - traefik.http.middlewares.ingest-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.ingest-router.middlewares=ingest-rewrite@docker
+      - traefik.http.services.ingest-svc.loadbalancer.server.port=8000
+
+  evidence-store:
+    build:
+      context: ../apps/backend/services/evidence-store
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - HOST=0.0.0.0
+    ports: ["8061:8000"]
+    volumes:
+      - evidence-data:/app/evidence-data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.evidence-router.rule=PathPrefix(`/api/evidence`)
+      - traefik.http.routers.evidence-router.priority=2000
+      - traefik.http.routers.evidence-router.service=evidence-svc
+      - traefik.http.middlewares.evidence-rewrite.replacepathregex.regex=^/api/evidence(/|$)(.*)
+      - traefik.http.middlewares.evidence-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.evidence-router.middlewares=evidence-rewrite@docker
+      - traefik.http.services.evidence-svc.loadbalancer.server.port=8000
+
+  esg-service:
+    build:
+      context: ../apps/backend/services/esg-service
+    environment: [NODE_ENV=production, PORT=8000, HOST=0.0.0.0]
+    ports: ["8007:8000"]
+    labels:
+     - traefik.enable=true
+     - traefik.http.routers.esg-router.rule=PathPrefix(`/api/esg`)
+     - traefik.http.routers.esg-router.priority=2000
+     - traefik.http.routers.esg-router.service=esg-svc
+     - traefik.http.middlewares.esg-rewrite.replacepathregex.regex=^/api/esg(/|$)(.*)
+     - traefik.http.middlewares.esg-rewrite.replacepathregex.replacement=/$2
+     - traefik.http.routers.esg-router.middlewares=esg-rewrite@docker
+     - traefik.http.services.esg-svc.loadbalancer.server.port=8000
+
+  time-series-service:
+    build:
+      context: ../apps/backend/services/time-series-service
+    environment: [NODE_ENV=production, PORT=8000, HOST=0.0.0.0]
+    ports: ["8025:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ts-router.rule=PathPrefix(`/api/timeseries`)
+      - traefik.http.routers.ts-router.priority=2000
+      - traefik.http.routers.ts-router.service=ts-svc
+      - traefik.http.middlewares.ts-rewrite.replacepathregex.regex=^/api/timeseries(/|$)(.*)
+      - traefik.http.middlewares.ts-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.ts-router.middlewares=ts-rewrite@docker
+      - traefik.http.services.ts-svc.loadbalancer.server.port=8000
+
+  emission-factors-service:
+    build:
+      context: ../apps/backend/services/emission-factors-service
+    environment: [NODE_ENV=production, PORT=8000, HOST=0.0.0.0]
+    ports: ["8021:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.emf-router.rule=PathPrefix(`/api/emission-factors`)
+      - traefik.http.routers.emf-router.priority=2000
+      - traefik.http.routers.emf-router.service=emf-svc
+      - traefik.http.middlewares.emf-rewrite.replacepathregex.regex=^/api/emission-factors(/|$)(.*)
+      - traefik.http.middlewares.emf-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.emf-router.middlewares=emf-rewrite@docker
+      - traefik.http.services.emf-svc.loadbalancer.server.port=8000
+
+  data-quality-service:
+    build:
+      context: ../apps/backend/services/data-quality-service
+    environment: [NODE_ENV=production, PORT=8000, HOST=0.0.0.0]
+    ports: ["8051:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dq-router.rule=PathPrefix(`/api/data-quality`)
+      - traefik.http.routers.dq-router.priority=2000
+      - traefik.http.routers.dq-router.service=dq-svc
+      - traefik.http.middlewares.dq-rewrite.replacepathregex.regex=^/api/data-quality(/|$)(.*)
+      - traefik.http.middlewares.dq-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.dq-router.middlewares=dq-rewrite@docker
+      - traefik.http.services.dq-svc.loadbalancer.server.port=8000
+
+  kpi-calculation-service:
+    build:
+      context: ../apps/backend/services/kpi-calculation-service
+    environment: [NODE_ENV=production, PORT=8000, HOST=0.0.0.0]
+    ports: ["8045:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.kpi-router.rule=PathPrefix(`/api/kpi`)
+      - traefik.http.routers.kpi-router.priority=2000
+      - traefik.http.routers.kpi-router.service=kpi-svc
+      - traefik.http.middlewares.kpi-rewrite.replacepathregex.regex=^/api/kpi(/|$)(.*)
+      - traefik.http.middlewares.kpi-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.kpi-router.middlewares=kpi-rewrite@docker
+      - traefik.http.services.kpi-svc.loadbalancer.server.port=8000
+
+  report-compiler-service:
+    build:
+      context: ../apps/backend/services/report-compiler-service
+    environment: [NODE_ENV=production, PORT=8000, HOST=0.0.0.0]
+    ports: ["8057:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.reports-router.rule=PathPrefix(`/api/reports`)
+      - traefik.http.routers.reports-router.priority=2000
+      - traefik.http.routers.reports-router.service=reports-svc
+      - traefik.http.middlewares.reports-rewrite.replacepathregex.regex=^/api/reports(/|$)(.*)
+      - traefik.http.middlewares.reports-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.reports-router.middlewares=reports-rewrite@docker
+      - traefik.http.services.reports-svc.loadbalancer.server.port=8000
+
+  xbrl-mapping-service:
+    build:
+      context: ../apps/backend/services/xbrl-mapping-service
+    environment: [NODE_ENV=production, PORT=8000, HOST=0.0.0.0]
+    ports: ["8059:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.xbrl-router.rule=PathPrefix(`/api/xbrl`)
+      - traefik.http.routers.xbrl-router.priority=2000
+      - traefik.http.routers.xbrl-router.service=xbrl-svc
+      - traefik.http.middlewares.xbrl-rewrite.replacepathregex.regex=^/api/xbrl(/|$)(.*)
+      - traefik.http.middlewares.xbrl-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.xbrl-router.middlewares=xbrl-rewrite@docker
+      - traefik.http.services.xbrl-svc.loadbalancer.server.port=8000
+
+  search-index-service:
+    build:
+      context: ../apps/backend/services/search-index-service
+    environment: [NODE_ENV=production, PORT=8000, HOST=0.0.0.0]
+    ports: ["8026:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.search-router.rule=PathPrefix(`/api/search`)
+      - traefik.http.routers.search-router.priority=2000
+      - traefik.http.routers.search-router.service=search-svc
+      - traefik.http.middlewares.search-rewrite.replacepathregex.regex=^/api/search(/|$)(.*)
+      - traefik.http.middlewares.search-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.search-router.middlewares=search-rewrite@docker
+      - traefik.http.services.search-svc.loadbalancer.server.port=8000
+
+  jobs-service:
+    build:
+      context: ../apps/backend/services/jobs-service
+    environment: [NODE_ENV=production, PORT=8000, HOST=0.0.0.0]
+    ports: ["8030:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.jobs-router.rule=PathPrefix(`/api/jobs`)
+      - traefik.http.routers.jobs-router.priority=2000
+      - traefik.http.routers.jobs-router.service=jobs-svc
+      - traefik.http.middlewares.jobs-rewrite.replacepathregex.regex=^/api/jobs(/|$)(.*)
+      - traefik.http.middlewares.jobs-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.jobs-router.middlewares=jobs-rewrite@docker
+      - traefik.http.services.jobs-svc.loadbalancer.server.port=8000
+
+  dashboards-service:
+    build:
+      context: ../apps/backend/services/dashboards-service
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - HOST=0.0.0.0
+      - FEATURES_JSON={"alerts":{"enabled":false},"payments":{"enabled":false},"blockchain":{"anchor":false},"copilot":{"enabled":false}}
+    ports: ["8028:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dash-router.rule=PathPrefix(`/api/dashboards`)
+      - traefik.http.routers.dash-router.priority=2000
+      - traefik.http.routers.dash-router.service=dash-svc
+      - traefik.http.middlewares.dash-rewrite.replacepathregex.regex=^/api/dashboards(/|$)(.*)
+      - traefik.http.middlewares.dash-rewrite.replacepathregex.replacement=/$2
+      - traefik.http.routers.dash-router.middlewares=dash-rewrite@docker
+      - traefik.http.services.dash-svc.loadbalancer.server.port=8000
+
+volumes:
+  evidence-data:

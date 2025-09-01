@@ -1,0 +1,19 @@
+http:
+  routers:
+    reports:
+      rule: PathPrefix(`/api/reports`)
+      entryPoints: [web]
+      service: reports-svc
+      middlewares: [reports-strip]
+      priority: 10000
+
+  middlewares:
+    reports-strip:
+      stripPrefix:
+        prefixes: [/api/reports]
+
+  services:
+    reports-svc:
+      loadBalancer:
+        servers:
+          - url: http://report-compiler-service:8000

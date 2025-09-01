@@ -1,0 +1,27 @@
+﻿services:
+  swagger-reports:
+    image: swaggerapi/swagger-ui
+    container_name: ct2-swagger-reports-1
+    environment:
+      SWAGGER_JSON: /spec/reports.openapi.yaml
+    volumes:
+      - type: bind
+        source: D:\CT2\docs\openapi\reports.openapi.yaml
+        target: /spec/reports.openapi.yaml
+        read_only: true
+        bind: { create_host_path: true }
+    networks: [ct2-net]
+    labels:
+      - traefik.enable=true
+      # Route at /docs/reports via Traefik :8081
+      - traefik.http.routers.docs-reports.rule=PathPrefix(`/docs/reports`)
+      - traefik.http.routers.docs-reports.entrypoints=web
+      - traefik.http.routers.docs-reports.priority=6000
+      - traefik.http.middlewares.docs-reports-strip.stripprefix.prefixes=/docs/reports
+      - traefik.http.routers.docs-reports.middlewares=docs-reports-strip
+      - traefik.http.services.docs-reports.loadbalancer.server.port=8080
+
+networks:
+  ct2-net:
+    external: true
+    name: ct2_ct2-net

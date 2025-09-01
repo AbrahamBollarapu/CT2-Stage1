@@ -1,0 +1,26 @@
+﻿# syntax=docker/dockerfile:1.7
+
+FROM node:18-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --no-audit --no-fund
+
+FROM node:18-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY tsconfig*.json ./
+COPY src ./src
+# add other build-time assets if used (e.g., openapi, prisma, assets)
+RUN npm run build
+
+FROM node:18-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=8000
+COPY package*.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
+COPY --from=build /app/dist ./dist
+EXPOSE 8000
+# delegate entrypoint to package.json so we don't hardcode dist path here
+CMD ["npm","run","start:prod"]

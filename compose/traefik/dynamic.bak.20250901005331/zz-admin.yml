@@ -1,0 +1,7 @@
+# Expose Traefik API + Dashboard on the admin entrypoint (8090)
+http:
+  routers:
+    traefik-admin:
+      rule: (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      entryPoints: [admin]
+      service: api@internal

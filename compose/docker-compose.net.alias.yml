@@ -1,0 +1,6 @@
+# docker-compose.net.alias.yml
+# Map the network name Traefik expects → the network you actually use.
+networks:
+  ct2_ct2-net:
+    external: true
+    name: ct2-net

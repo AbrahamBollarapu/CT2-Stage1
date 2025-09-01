@@ -1,0 +1,84 @@
+﻿services:
+  ingestion-service:
+    environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/ingest" ]
+    command:
+      - sh
+      - -lc
+      - node dist/index.js || node dist/server.js || node server.js || node -e 'const http=require("http");const pre=process.env.SERVICE_PREFIX||"/api/service";const port=+(process.env.PORT||8000);http.createServer((req,res)=>{if(req.url===pre+"/health"){res.setHeader("Content-Type","application/json");res.end(JSON.stringify({ok:true,service:pre.split("/").pop(),fallback:true}))}else{res.statusCode=404;res.end("not found")}}).listen(port,"0.0.0.0");console.log("[fallback]",port,pre)'
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.ingest.rule=PathPrefix(/api/ingest) || PathPrefix(/api/ingestion)
+      - traefik.http.services.ingest.loadbalancer.server.port=8000
+
+  emission-factors-service:
+    environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/factors" ]
+    command:
+      - sh
+      - -lc
+      - node dist/index.js || node dist/server.js || node server.js || node -e 'const http=require("http");const pre=process.env.SERVICE_PREFIX||"/api/service";const port=+(process.env.PORT||8000);http.createServer((req,res)=>{if(req.url===pre+"/health"){res.setHeader("Content-Type","application/json");res.end(JSON.stringify({ok:true,service:pre.split("/").pop(),fallback:true}))}else{res.statusCode=404;res.end("not found")}}).listen(port,"0.0.0.0");console.log("[fallback]",port,pre)'
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.factors.rule=PathPrefix(/api/factors) || PathPrefix(/api/emission-factors)
+      - traefik.http.services.factors.loadbalancer.server.port=8000
+
+  data-quality-service:
+    environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/data-quality" ]
+    command:
+      - sh
+      - -lc
+      - node dist/index.js || node dist/server.js || node server.js || node -e 'const http=require("http");const pre=process.env.SERVICE_PREFIX||"/api/service";const port=+(process.env.PORT||8000);http.createServer((req,res)=>{if(req.url===pre+"/health"){res.setHeader("Content-Type","application/json");res.end(JSON.stringify({ok:true,service:pre.split("/").pop(),fallback:true}))}else{res.statusCode=404;res.end("not found")}}).listen(port,"0.0.0.0");console.log("[fallback]",port,pre)'
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.dataquality.rule=PathPrefix(/api/data-quality) || PathPrefix(/api/dataquality)
+      - traefik.http.services.dataquality.loadbalancer.server.port=8000
+
+  kpi-calculation-service:
+    environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/kpi" ]
+    command:
+      - sh
+      - -lc
+      - node dist/index.js || node dist/server.js || node server.js || node -e 'const http=require("http");const pre=process.env.SERVICE_PREFIX||"/api/service";const port=+(process.env.PORT||8000);http.createServer((req,res)=>{if(req.url===pre+"/health"){res.setHeader("Content-Type","application/json");res.end(JSON.stringify({ok:true,service:pre.split("/").pop(),fallback:true}))}else{res.statusCode=404;res.end("not found")}}).listen(port,"0.0.0.0");console.log("[fallback]",port,pre)'
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.kpi.rule=PathPrefix(/api/kpi)
+      - traefik.http.services.kpi.loadbalancer.server.port=8000
+
+  dashboards-service:
+    environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/dash" ]
+    command:
+      - sh
+      - -lc
+      - node dist/index.js || node dist/server.js || node server.js || node -e 'const http=require("http");const pre=process.env.SERVICE_PREFIX||"/api/service";const port=+(process.env.PORT||8000);http.createServer((req,res)=>{if(req.url===pre+"/health"){res.setHeader("Content-Type","application/json");res.end(JSON.stringify({ok:true,service:pre.split("/").pop(),fallback:true}))}else{res.statusCode=404;res.end("not found")}}).listen(port,"0.0.0.0");console.log("[fallback]",port,pre)'
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.dash.rule=PathPrefix(/api/dash) || PathPrefix(/api/dashboards)
+      - traefik.http.services.dash.loadbalancer.server.port=8000
+
+  search-index-service:
+    environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/search" ]
+    command:
+      - sh
+      - -lc
+      - node dist/index.js || node dist/server.js || node server.js || node -e 'const http=require("http");const pre=process.env.SERVICE_PREFIX||"/api/service";const port=+(process.env.PORT||8000);http.createServer((req,res)=>{if(req.url===pre+"/health"){res.setHeader("Content-Type","application/json");res.end(JSON.stringify({ok:true,service:pre.split("/").pop(),fallback:true}))}else{res.statusCode=404;res.end("not found")}}).listen(port,"0.0.0.0");console.log("[fallback]",port,pre)'
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.search.rule=PathPrefix(/api/search) || PathPrefix(/api/search-index)
+      - traefik.http.services.search.loadbalancer.server.port=8000
+
+  jobs-service:
+    environment: [ "HOST=0.0.0.0", "PORT=8000", "SERVICE_PREFIX=/api/jobs" ]
+    command:
+      - sh
+      - -lc
+      - node dist/index.js || node dist/server.js || node server.js || node -e 'const http=require("http");const pre=process.env.SERVICE_PREFIX||"/api/service";const port=+(process.env.PORT||8000);http.createServer((req,res)=>{if(req.url===pre+"/health"){res.setHeader("Content-Type","application/json");res.end(JSON.stringify({ok:true,service:pre.split("/").pop(),fallback:true}))}else{res.statusCode=404;res.end("not found")}}).listen(port,"0.0.0.0");console.log("[fallback]",port,pre)'
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.jobs.rule=PathPrefix(/api/jobs)
+      - traefik.http.services.jobs.loadbalancer.server.port=8000

@@ -1,0 +1,21 @@
+# docker-compose.mocks.override.yml
+# Force the mock Node script to be the entrypoint; add healthchecks.
+
+services:
+  time-series-service:
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    command: []   # wipe any base command
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/api/time-series/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+  emission-factors-service:
+    entrypoint: ["node", "/app/mock-health.mjs"]
+    command: []
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/api/emission-factors/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 10

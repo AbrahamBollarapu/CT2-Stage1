@@ -1,0 +1,33 @@
+﻿services:
+  xbrl-mapping-service:
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ct2_ct2-net
+      traefik.http.routers.ct2-xbrl.rule: PathPrefix(`/api/xbrl`)
+      traefik.http.routers.ct2-xbrl.entrypoints: web
+      traefik.http.middlewares.ct2-xbrl-strip.stripprefix.prefixes: /api/xbrl
+      traefik.http.routers.ct2-xbrl.middlewares: ct2-xbrl-strip
+      traefik.http.routers.ct2-xbrl.service: ct2-xbrl
+      traefik.http.services.ct2-xbrl.loadbalancer.server.port: "8000"
+
+  governance-service:
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ct2_ct2-net
+      traefik.http.routers.ct2-governance.rule: PathPrefix(`/api/governance`)
+      traefik.http.routers.ct2-governance.entrypoints: web
+      traefik.http.middlewares.ct2-governance-strip.stripprefix.prefixes: /api/governance
+      traefik.http.routers.ct2-governance.middlewares: ct2-governance-strip
+      traefik.http.routers.ct2-governance.service: ct2-governance
+      traefik.http.services.ct2-governance.loadbalancer.server.port: "8000"
+
+  evidence-store:
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ct2_ct2-net
+      traefik.http.routers.ct2-evidence.rule: PathPrefix(`/api/evidence`)
+      traefik.http.routers.ct2-evidence.entrypoints: web
+      traefik.http.middlewares.ct2-evidence-strip.stripprefix.prefixes: /api/evidence
+      traefik.http.routers.ct2-evidence.middlewares: ct2-evidence-strip
+      traefik.http.routers.ct2-evidence.service: ct2-evidence
+      traefik.http.services.ct2-evidence.loadbalancer.server.port: "8000"

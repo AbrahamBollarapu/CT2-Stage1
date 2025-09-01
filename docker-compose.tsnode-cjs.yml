@@ -1,0 +1,15 @@
+﻿services:
+  xbrl-mapping-service:
+    environment:
+      - TS_NODE_COMPILER_OPTIONS={"module":"CommonJS","moduleResolution":"node"}
+    command: ["sh","-lc","exec node -r ts-node/register/transpile-only -e \"require('./src/server.ts')\""]
+
+  governance-service:
+    environment:
+      - TS_NODE_COMPILER_OPTIONS={"module":"CommonJS","moduleResolution":"node"}
+    command: ["sh","-lc","exec node -r ts-node/register/transpile-only -e \"require('./src/server.ts')\""]
+
+  evidence-store:
+    environment:
+      - TS_NODE_COMPILER_OPTIONS={"module":"CommonJS","moduleResolution":"node"}
+    command: ["sh","-lc","exec node -r ts-node/register/transpile-only -e \"require('./src/server.ts')\""]

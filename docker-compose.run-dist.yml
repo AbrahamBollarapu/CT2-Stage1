@@ -1,0 +1,9 @@
+﻿services:
+  xbrl-mapping-service:
+    entrypoint: ["node","dist/server.js"]
+
+  governance-service:
+    entrypoint: ["node","dist/server.js"]
+
+  evidence-store:
+    entrypoint: ["node","dist/server.js"]

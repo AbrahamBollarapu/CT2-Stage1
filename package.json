@@ -1,0 +1,15 @@
+{
+  "name": "ct2-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*/*",
+    "packages/*",
+    "infra/*"
+  ],
+  "scripts": {
+    "dev": "pwsh ./scripts/dev.ps1",
+    "build": "echo Build all (wire up turborepo if desired)",
+    "lint": "echo Lint all",
+    "test": "echo Test all"
+  }
+}

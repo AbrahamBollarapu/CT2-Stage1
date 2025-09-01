@@ -1,0 +1,23 @@
+services:
+  evidence-store:
+    environment:
+      - PORT=8000
+      - ARTIFACT_DIR=/var/lib/ct2/artifacts
+    volumes:
+      - artifacts-data:/var/lib/ct2/artifacts
+    healthcheck:
+      test: ["CMD-SHELL","wget -4 -qO- http://127.0.0.1:8000/ready || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  report-compiler-service:
+    environment:
+      - ARTIFACT_DIR=/var/lib/ct2/artifacts
+    volumes:
+      - artifacts-data:/var/lib/ct2/artifacts
+
+volumes:
+  artifacts-data:
+    driver: local

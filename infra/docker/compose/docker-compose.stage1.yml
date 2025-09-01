@@ -1,0 +1,135 @@
+version: "3.9"
+
+networks:
+  ct2-net:
+    name: ct2-net
+
+services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      - "--providers.docker=true"
+      - "--api.dashboard=true"
+      - "--entrypoints.web.address=:8081"
+      - "--providers.file.filename=/etc/traefik/traefik.yml"
+    ports:
+      - "8080:8080"   # dashboard
+      - "8081:8081"   # public web entrypoint
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../traefik/traefik.yml:/etc/traefik/traefik.yml
+    networks: [ct2-net]
+
+  esg-service:
+    build: ../../../apps/backend/services/esg-service
+    networks: [ct2-net]
+    expose: ["8000"]
+    ports: ["8007:8000"]  # optional for direct dev hits
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.esg.entrypoints=web
+      - traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)
+      - traefik.http.middlewares.strip-esg.stripprefix.prefixes=/api/esg
+      - traefik.http.routers.esg.middlewares=strip-esg
+      - traefik.http.services.esg.loadbalancer.server.port=8000
+
+  time-series-service:
+    build: ../../../apps/backend/services/time-series-service
+    networks: [ct2-net]
+    expose: ["8000"]
+    ports: ["8025:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.ts.entrypoints=web
+      - traefik.http.routers.ts.rule=PathPrefix(`/api/timeseries`)
+      - traefik.http.middlewares.strip-ts.stripprefix.prefixes=/api/timeseries
+      - traefik.http.routers.ts.middlewares=strip-ts
+      - traefik.http.services.ts.loadbalancer.server.port=8000
+
+  data-quality-service:
+    build: ../../../apps/backend/services/data-quality-service
+    networks: [ct2-net]
+    expose: ["8000"]
+    ports: ["8051:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.dq.entrypoints=web
+      - traefik.http.routers.dq.rule=PathPrefix(`/api/data-quality`)
+      - traefik.http.middlewares.strip-dq.stripprefix.prefixes=/api/data-quality
+      - traefik.http.routers.dq.middlewares=strip-dq
+      - traefik.http.services.dq.loadbalancer.server.port=8000
+
+  kpi-calculation-service:
+    build: ../../../apps/backend/services/kpi-calculation-service
+    networks: [ct2-net]
+    expose: ["8000"]
+    ports: ["8045:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.kpi.entrypoints=web
+      - traefik.http.routers.kpi.rule=PathPrefix(`/api/kpi`)
+      - traefik.http.middlewares.strip-kpi.stripprefix.prefixes=/api/kpi
+      - traefik.http.routers.kpi.middlewares=strip-kpi
+      - traefik.http.services.kpi.loadbalancer.server.port=8000
+
+  ingestion-service:
+    build: ../../../apps/backend/services/ingestion-service
+    networks: [ct2-net]
+    expose: ["8000"]
+    ports: ["8040:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.ingest.entrypoints=web
+      - traefik.http.routers.ingest.rule=PathPrefix(`/api/ingest`)
+      - traefik.http.middlewares.strip-ingest.stripprefix.prefixes=/api/ingest
+      - traefik.http.routers.ingest.middlewares=strip-ingest
+      - traefik.http.services.ingest.loadbalancer.server.port=8000
+
+  report-compiler-service:
+    build: ../../../apps/backend/services/report-compiler-service
+    networks: [ct2-net]
+    expose: ["8000"]
+    ports: ["8057:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.reports.entrypoints=web
+      - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
+      - traefik.http.middlewares.strip-reports.stripprefix.prefixes=/api/reports
+      - traefik.http.routers.reports.middlewares=strip-reports
+      - traefik.http.services.reports.loadbalancer.server.port=8000
+
+  xbrl-mapping-service:
+    build: ../../../apps/backend/services/xbrl-mapping-service
+    networks: [ct2-net]
+    expose: ["8000"]
+    ports: ["8059:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.xbrl.entrypoints=web
+      - traefik.http.routers.xbrl.rule=PathPrefix(`/api/xbrl`)
+      - traefik.http.middlewares.strip-xbrl.stripprefix.prefixes=/api/xbrl
+      - traefik.http.routers.xbrl.middlewares=strip-xbrl
+      - traefik.http.services.xbrl.loadbalancer.server.port=8000
+
+  evidence-store:
+    build:
+      context: ../../../apps/backend/services/evidence-store
+      dockerfile: Dockerfile
+    networks: [ct2-net]
+    expose: ["8000"]
+    ports: ["8061:8000"]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.evidence.entrypoints=web
+      - traefik.http.routers.evidence.rule=PathPrefix(`/api/evidence`)
+      - traefik.http.middlewares.strip-evidence.stripprefix.prefixes=/api/evidence
+      - traefik.http.routers.evidence.middlewares=strip-evidence
+      - traefik.http.services.evidence.loadbalancer.server.port=8000

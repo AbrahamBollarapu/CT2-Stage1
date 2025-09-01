@@ -1,0 +1,533 @@
+﻿networks:
+  ct2-net: {}
+
+services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      - --providers.docker=true`r`n      - --providers.docker.network=ct2-net
+      - --providers.docker.network=ct2-net
+      - --entrypoints.web.address=:80
+      - --api.dashboard=true
+    ports:
+      - "8081:80"     # Traefik entrypoint (use 8081 to avoid port-80 conflicts)
+      - "8080:8080"   # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - ct2-net
+
+  esg-service:
+    build:
+      context: "D:/CT2/apps/backend/services/esg-service"
+    restart: unless-stopped
+    networks: [ct2-net]
+    environment:
+      - PORT=8000
+      - SERVICE_NAME=esg-service
+    labels:
+      - "traefik.enable=true"
+      # Keep labels identical in style to the working reports route:
+      - "traefik.http.routers.esg-service.rule=PathPrefix(\"/api/esg\")"
+      - "traefik.http.routers.esg-service.middlewares=strip-esg-service"
+      - "traefik.http.services.esg-service.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.strip-esg-service.stripprefix.prefixes=/api/esg"
+      # Optional but nice to have if Traefik is pinned to a network:
+      - "traefik.docker.network=ct2-net"
+      # (omit entrypoints to mirror the working reports router behavior)
+    ports:
+      - "8007:8000"
+    # Use a curl-less Node healthcheck (wget isn't in node:alpine)
+    healthcheck:
+      test: ["CMD", "node", "-e", "http=require('http');http.get('http://localhost:8000/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+      
+  kpi-calculation-service:
+    build: { context: "D:/CT2/apps/backend/services/kpi-calculation-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.kpi-calculation-service.rule=PathPrefix("/api/kpi")'
+      - 'traefik.http.services.kpi-calculation-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-kpi-calculation-service.stripprefix.prefixes=/api/kpi'
+      - 'traefik.http.routers.kpi-calculation-service.middlewares=strip-kpi-calculation-service'
+    ports: [ "8045:8000" ]
+
+  emission-factors-service:
+    build: { context: "D:/CT2/apps/backend/services/emission-factors-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.emission-factors-service.rule=PathPrefix("/api/factors")'
+      - 'traefik.http.services.emission-factors-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-emission-factors-service.stripprefix.prefixes=/api/factors'
+      - 'traefik.http.routers.emission-factors-service.middlewares=strip-emission-factors-service'
+
+  carbon-points-rules-service:
+    build: { context: "D:/CT2/apps/backend/services/carbon-points-rules-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.carbon-points-rules-service.rule=PathPrefix("/api/carbon-rules")'
+      - 'traefik.http.services.carbon-points-rules-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-carbon-points-rules-service.stripprefix.prefixes=/api/carbon-rules'
+      - 'traefik.http.routers.carbon-points-rules-service.middlewares=strip-carbon-points-rules-service'
+    ports: [ "8016:8000" ]
+
+  verification-service:
+    build: { context: "D:/CT2/apps/backend/services/verification-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.verification-service.rule=PathPrefix("/api/verification")'
+      - 'traefik.http.services.verification-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-verification-service.stripprefix.prefixes=/api/verification'
+      - 'traefik.http.routers.verification-service.middlewares=strip-verification-service'
+    ports: [ "8033:8000" ]
+
+  blockchain-service:
+    build: { context: "D:/CT2/apps/backend/services/blockchain-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.blockchain-service.rule=PathPrefix("/api/blockchain")'
+      - 'traefik.http.services.blockchain-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-blockchain-service.stripprefix.prefixes=/api/blockchain'
+      - 'traefik.http.routers.blockchain-service.middlewares=strip-blockchain-service'
+    ports: [ "8013:8000" ]
+
+  alerts-service:
+    build: { context: "D:/CT2/apps/backend/services/alerts-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.alerts-service.rule=PathPrefix("/api/alerts")'
+      - 'traefik.http.services.alerts-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-alerts-service.stripprefix.prefixes=/api/alerts'
+      - 'traefik.http.routers.alerts-service.middlewares=strip-alerts-service'
+
+  notification-service:
+    build: { context: "D:/CT2/apps/backend/services/notification-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.notification-service.rule=PathPrefix("/api/notifications")'
+      - 'traefik.http.services.notification-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-notification-service.stripprefix.prefixes=/api/notifications'
+      - 'traefik.http.routers.notification-service.middlewares=strip-notification-service'
+
+  marketplace-service:
+    build: { context: "D:/CT2/apps/backend/services/marketplace-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.marketplace-service.rule=PathPrefix("/api/marketplace")'
+      - 'traefik.http.services.marketplace-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-marketplace-service.stripprefix.prefixes=/api/marketplace'
+      - 'traefik.http.routers.marketplace-service.middlewares=strip-marketplace-service'
+    ports: [ "8020:8000" ]
+
+  payment-service:
+    build: { context: "D:/CT2/apps/backend/services/payment-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.payment-service.rule=PathPrefix("/api/payments")'
+      - 'traefik.http.services.payment-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-payment-service.stripprefix.prefixes=/api/payments'
+      - 'traefik.http.routers.payment-service.middlewares=strip-payment-service'
+    ports: [ "8012:8000" ]
+
+  wallet-service:
+    build: { context: "D:/CT2/apps/backend/services/wallet-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.wallet-service.rule=PathPrefix("/api/wallets")'
+      - 'traefik.http.services.wallet-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-wallet-service.stripprefix.prefixes=/api/wallets'
+      - 'traefik.http.routers.wallet-service.middlewares=strip-wallet-service'
+
+  supplier-service:
+    build: { context: "D:/CT2/apps/backend/services/supplier-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.supplier-service.rule=PathPrefix("/api/suppliers")'
+      - 'traefik.http.services.supplier-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-supplier-service.stripprefix.prefixes=/api/suppliers'
+      - 'traefik.http.routers.supplier-service.middlewares=strip-supplier-service'
+    ports: [ "8002:8000" ]
+
+  client-service:
+    build: { context: "D:/CT2/apps/backend/services/client-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.client-service.rule=PathPrefix("/api/clients")'
+      - 'traefik.http.services.client-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-client-service.stripprefix.prefixes=/api/clients'
+      - 'traefik.http.routers.client-service.middlewares=strip-client-service'
+    ports: [ "8004:8000" ]
+
+  org-service:
+    build: { context: "D:/CT2/apps/backend/services/org-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.org-service.rule=PathPrefix("/api/orgs")'
+      - 'traefik.http.services.org-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-org-service.stripprefix.prefixes=/api/orgs'
+      - 'traefik.http.routers.org-service.middlewares=strip-org-service'
+    ports: [ "8005:8000" ]
+
+  user-service:
+    build: { context: "D:/CT2/apps/backend/services/user-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.user-service.rule=PathPrefix("/api/users")'
+      - 'traefik.http.services.user-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-user-service.stripprefix.prefixes=/api/users'
+      - 'traefik.http.routers.user-service.middlewares=strip-user-service'
+    ports: [ "8001:8000" ]
+
+  authz-service:
+    build: { context: "D:/CT2/apps/backend/services/authz-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.authz-service.rule=PathPrefix("/api/iam")'
+      - 'traefik.http.services.authz-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-authz-service.stripprefix.prefixes=/api/iam'
+      - 'traefik.http.routers.authz-service.middlewares=strip-authz-service'
+
+  facility-service:
+    build: { context: "D:/CT2/apps/backend/services/facility-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.facility-service.rule=PathPrefix("/api/facilities")'
+      - 'traefik.http.services.facility-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-facility-service.stripprefix.prefixes=/api/facilities'
+      - 'traefik.http.routers.facility-service.middlewares=strip-facility-service'
+
+  device-catalog-service:
+    build: { context: "D:/CT2/apps/backend/services/device-catalog-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.device-catalog-service.rule=PathPrefix("/api/devices")'
+      - 'traefik.http.services.device-catalog-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-device-catalog-service.stripprefix.prefixes=/api/devices'
+      - 'traefik.http.routers.device-catalog-service.middlewares=strip-device-catalog-service'
+
+  utility-adapter-service:
+    build: { context: "D:/CT2/apps/backend/services/utility-adapter-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.utility-adapter-service.rule=PathPrefix("/api/utilities")'
+      - 'traefik.http.services.utility-adapter-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-utility-adapter-service.stripprefix.prefixes=/api/utilities'
+      - 'traefik.http.routers.utility-adapter-service.middlewares=strip-utility-adapter-service'
+
+  data-import-service:
+    build: { context: "D:/CT2/apps/backend/services/data-import-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.data-import-service.rule=PathPrefix("/api/import")'
+      - 'traefik.http.services.data-import-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-data-import-service.stripprefix.prefixes=/api/import'
+      - 'traefik.http.routers.data-import-service.middlewares=strip-data-import-service'
+
+  file-service:
+    build: { context: "D:/CT2/apps/backend/services/file-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.file-service.rule=PathPrefix("/api/files")'
+      - 'traefik.http.services.file-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-file-service.stripprefix.prefixes=/api/files'
+      - 'traefik.http.routers.file-service.middlewares=strip-file-service'
+
+  time-series-service:
+    build: { context: "D:/CT2/apps/backend/services/time-series-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.time-series-service.rule=PathPrefix("/api/timeseries")'
+      - 'traefik.http.services.time-series-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-time-series-service.stripprefix.prefixes=/api/timeseries'
+      - 'traefik.http.routers.time-series-service.middlewares=strip-time-series-service'
+
+  search-index-service:
+    build: { context: "D:/CT2/apps/backend/services/search-index-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.search-index-service.rule=PathPrefix("/api/search")'
+      - 'traefik.http.services.search-index-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-search-index-service.stripprefix.prefixes=/api/search'
+      - 'traefik.http.routers.search-index-service.middlewares=strip-search-index-service'
+
+  analytics-query-service:
+    build: { context: "D:/CT2/apps/backend/services/analytics-query-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.analytics-query-service.rule=PathPrefix("/api/analytics")'
+      - 'traefik.http.services.analytics-query-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-analytics-query-service.stripprefix.prefixes=/api/analytics'
+      - 'traefik.http.routers.analytics-query-service.middlewares=strip-analytics-query-service'
+
+  dashboards-service:
+    build: { context: "D:/CT2/apps/backend/services/dashboards-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.dashboards-service.rule=PathPrefix("/api/dashboards")'
+      - 'traefik.http.services.dashboards-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-dashboards-service.stripprefix.prefixes=/api/dashboards'
+      - 'traefik.http.routers.dashboards-service.middlewares=strip-dashboards-service'
+
+  reporting-service:
+    build: { context: "D:/CT2/apps/backend/services/reporting-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.reporting-service.rule=PathPrefix("/api/reporting")'
+      - 'traefik.http.services.reporting-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-reporting-service.stripprefix.prefixes=/api/reporting'
+      - 'traefik.http.routers.reporting-service.middlewares=strip-reporting-service'
+    ports: [ "8010:8000" ]
+
+  jobs-service:
+    build: { context: "D:/CT2/apps/backend/services/jobs-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.jobs-service.rule=PathPrefix("/api/jobs")'
+      - 'traefik.http.services.jobs-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-jobs-service.stripprefix.prefixes=/api/jobs'
+      - 'traefik.http.routers.jobs-service.middlewares=strip-jobs-service'
+
+  scheduler-service:
+    build: { context: "D:/CT2/apps/backend/services/scheduler-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.scheduler-service.rule=PathPrefix("/api/scheduler")'
+      - 'traefik.http.services.scheduler-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-scheduler-service.stripprefix.prefixes=/api/scheduler'
+      - 'traefik.http.routers.scheduler-service.middlewares=strip-scheduler-service'
+
+  procurement-connector-service:
+    build: { context: "D:/CT2/apps/backend/services/procurement-connector-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.procurement-connector-service.rule=PathPrefix("/api/procurement")'
+      - 'traefik.http.services.procurement-connector-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-procurement-connector-service.stripprefix.prefixes=/api/procurement'
+      - 'traefik.http.routers.procurement-connector-service.middlewares=strip-procurement-connector-service'
+
+  api-keys-service:
+    build: { context: "D:/CT2/apps/backend/services/api-keys-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.api-keys-service.rule=PathPrefix("/api/api-keys")'
+      - 'traefik.http.services.api-keys-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-api-keys-service.stripprefix.prefixes=/api/api-keys'
+      - 'traefik.http.routers.api-keys-service.middlewares=strip-api-keys-service'
+
+  data-warehouse-writer-service:
+    build: { context: "D:/CT2/apps/backend/services/data-warehouse-writer-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.data-warehouse-writer-service.rule=PathPrefix("/api/dwh")'
+      - 'traefik.http.services.data-warehouse-writer-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-data-warehouse-writer-service.stripprefix.prefixes=/api/dwh'
+      - 'traefik.http.routers.data-warehouse-writer-service.middlewares=strip-data-warehouse-writer-service'
+
+  ingestion-service:
+    build: { context: "D:/CT2/apps/backend/services/ingestion-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.ingestion-service.rule=PathPrefix("/api/ingest")'
+      - 'traefik.http.services.ingestion-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-ingestion-service.stripprefix.prefixes=/api/ingest'
+      - 'traefik.http.routers.ingestion-service.middlewares=strip-ingestion-service'
+    ports: [ "8050:8000" ]
+
+  data-quality-service:
+    build: { context: "D:/CT2/apps/backend/services/data-quality-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.data-quality-service.rule=PathPrefix("/api/data-quality")'
+      - 'traefik.http.services.data-quality-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-data-quality-service.stripprefix.prefixes=/api/data-quality'
+      - 'traefik.http.routers.data-quality-service.middlewares=strip-data-quality-service'
+    ports: [ "8051:8000" ]
+
+  compliance-copilot-service:
+    build: { context: "D:/CT2/apps/backend/services/compliance-copilot-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.compliance-copilot-service.rule=PathPrefix("/api/copilot")'
+      - 'traefik.http.services.compliance-copilot-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-compliance-copilot-service.stripprefix.prefixes=/api/copilot'
+      - 'traefik.http.routers.compliance-copilot-service.middlewares=strip-compliance-copilot-service'
+    ports: [ "8052:8000" ]
+
+  supplier-assessment-service:
+    build: { context: "D:/CT2/apps/backend/services/supplier-assessment-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.supplier-assessment-service.rule=PathPrefix("/api/supplier-assessments")'
+      - 'traefik.http.services.supplier-assessment-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-supplier-assessment-service.stripprefix.prefixes=/api/supplier-assessments'
+      - 'traefik.http.routers.supplier-assessment-service.middlewares=strip-supplier-assessment-service'
+    ports: [ "8053:8000" ]
+
+  materiality-service:
+    build: { context: "D:/CT2/apps/backend/services/materiality-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.materiality-service.rule=PathPrefix("/api/materiality")'
+      - 'traefik.http.services.materiality-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-materiality-service.stripprefix.prefixes=/api/materiality'
+      - 'traefik.http.routers.materiality-service.middlewares=strip-materiality-service'
+    ports: [ "8054:8000" ]
+
+  brsr-adapter-service:
+    build: { context: "D:/CT2/apps/backend/services/brsr-adapter-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.brsr-adapter-service.rule=PathPrefix("/api/brsr")'
+      - 'traefik.http.services.brsr-adapter-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-brsr-adapter-service.stripprefix.prefixes=/api/brsr'
+      - 'traefik.http.routers.brsr-adapter-service.middlewares=strip-brsr-adapter-service'
+    ports: [ "8055:8000" ]
+
+  risk-mapping-service:
+    build: { context: "D:/CT2/apps/backend/services/risk-mapping-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.risk-mapping-service.rule=PathPrefix("/api/esg-risk")'
+      - 'traefik.http.services.risk-mapping-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-risk-mapping-service.stripprefix.prefixes=/api/esg-risk'
+      - 'traefik.http.routers.risk-mapping-service.middlewares=strip-risk-mapping-service'
+    ports: [ "8056:8000" ]
+
+  report-compiler-service:
+    build: { context: "D:/CT2/apps/backend/services/report-compiler-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.report-compiler-service.rule=PathPrefix("/api/reports")'
+      - 'traefik.http.services.report-compiler-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-report-compiler-service.stripprefix.prefixes=/api/reports'
+      - 'traefik.http.routers.report-compiler-service.middlewares=strip-report-compiler-service'
+    ports: [ "8057:8000" ]
+
+  governance-service:
+    build: { context: "D:/CT2/apps/backend/services/governance-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.governance-service.rule=PathPrefix("/api/governance")'
+      - 'traefik.http.services.governance-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-governance-service.stripprefix.prefixes=/api/governance'
+      - 'traefik.http.routers.governance-service.middlewares=strip-governance-service'
+    ports: [ "8058:8000" ]
+
+  xbrl-mapping-service:
+    build: { context: "D:/CT2/apps/backend/services/xbrl-mapping-service" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.xbrl-mapping-service.rule=PathPrefix("/api/xbrl")'
+      - 'traefik.http.services.xbrl-mapping-service.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-xbrl-mapping-service.stripprefix.prefixes=/api/xbrl'
+      - 'traefik.http.routers.xbrl-mapping-service.middlewares=strip-xbrl-mapping-service'
+    ports: [ "8059:8000" ]
+
+  device-ingest-gateway:
+    build: { context: "D:/CT2/apps/backend/services/device-ingest-gateway" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.device-ingest-gateway.rule=PathPrefix("/api/device-ingest")'
+      - 'traefik.http.services.device-ingest-gateway.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-device-ingest-gateway.stripprefix.prefixes=/api/device-ingest'
+      - 'traefik.http.routers.device-ingest-gateway.middlewares=strip-device-ingest-gateway'
+    ports: [ "8060:8000" ]
+
+  evidence-store:
+    build: { context: "D:/CT2/apps/backend/services/evidence-store" }
+    networks: [ct2-net]
+    environment: [ "PORT=8000" ]
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.evidence-store.rule=PathPrefix("/api/evidence")'
+      - 'traefik.http.services.evidence-store.loadbalancer.server.port=8000'
+      - 'traefik.http.middlewares.strip-evidence-store.stripprefix.prefixes=/api/evidence'
+      - 'traefik.http.routers.evidence-store.middlewares=strip-evidence-store'
+    ports: [ "8061:8000" ]
+
+

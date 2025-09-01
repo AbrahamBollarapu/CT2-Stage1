@@ -1,0 +1,5 @@
+﻿services:
+  esg-service:
+    labels:
+      traefik.instance: ct2
+      traefik.docker.network: ct2_ct2-net
