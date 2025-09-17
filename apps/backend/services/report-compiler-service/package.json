@@ -1,6 +1,12 @@
 ﻿{
   "name": "report-compiler-service",
+  "version": "1.0.0",
   "type": "module",
-  "scripts": { "start:prod": "node server.mjs", "start": "node server.mjs" },
-  "dependencies": { "express": "^4.19.2", "nanoid": "^5.0.7", "pdfkit": "^0.14.0" }
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
 }

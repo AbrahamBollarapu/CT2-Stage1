@@ -1,0 +1,16 @@
+﻿services:
+  report-compiler-service:
+    build:
+      context: ../apps/backend/services/report-compiler-service
+      dockerfile: Dockerfile
+    container_name: ct2-report-compiler-service
+    environment:
+      - PORT=8000
+      - API_KEY=ct2-dev-key
+      - ARTIFACT_DIR=/data/artifacts
+      - REPORTS_FALLBACK=true
+    volumes:
+      - ../apps/backend/services/report-compiler-service/assets:/app/assets:ro
+      - ./data/reports-artifacts:/data/artifacts
+    ports:
+      - "8088:8000"

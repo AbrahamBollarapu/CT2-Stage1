@@ -23,23 +23,20 @@ services:
     image: node:20-alpine
     container_name: ct2-suppliers-service
     working_dir: /app
-    # Exec-form, single line to avoid CRLF issues
     command: ["/bin/sh","-lc","if [ ! -f /app/node_modules/fastify/package.json ]; then echo 'Installing npm deps into /app/node_modules...'; npm ci || npm install; fi; exec node server.mjs"]
     environment:
       PORT: "8000"
       HOST: 0.0.0.0
       SERVICE_PREFIX: /api
       API_KEY: ct2-dev-key
-      DISABLE_AUTH: "true"  # ← ADD THIS LINE TO DISABLE AUTH
+      DISABLE_AUTH: "true"
       PGHOST: evidence-db
       PGUSER: evidence
       PGPASSWORD: evidence
       PGDATABASE: evidence
       PGPORT: "5432"
     volumes:
-      # read-only source code
       - ../apps/backend/services/supplier-service:/app:ro
-      # writable node_modules cached in a named volume
       - suppliers_node_modules:/app/node_modules
     depends_on:
       evidence-db:
@@ -51,6 +48,7 @@ services:
       retries: 30
     labels:
       - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
       - traefik.http.routers.suppliers-api.rule=PathPrefix(`/api`)
       - traefik.http.routers.suppliers-api.entrypoints=web
       - traefik.http.routers.suppliers-api.service=suppliers-service
@@ -58,11 +56,9 @@ services:
       - traefik.http.routers.suppliers-health.rule=Path(`/health`)
       - traefik.http.routers.suppliers-health.entrypoints=web
       - traefik.http.routers.suppliers-health.service=suppliers-service
-      - traefik.docker.network=ct2-net  # ← CRITICAL: Add this line
-    networks: [ct2-net]
+    networks: [ct2-net, ct2-demo_default]
     restart: unless-stopped
 
-  # ESG Service
   esg-service:
     image: node:20-alpine
     container_name: ct2-esg-service
@@ -84,17 +80,16 @@ services:
       retries: 30
     labels:
       - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
       - traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)
       - traefik.http.routers.esg.entrypoints=web
       - traefik.http.routers.esg.service=esg
       - traefik.http.services.esg.loadbalancer.server.port=8000
       - traefik.http.middlewares.esg-strip.stripprefix.prefixes=/api/esg
       - traefik.http.routers.esg.middlewares=esg-strip
-      - traefik.docker.network=ct2-net
-    networks: [ct2-net]
+    networks: [ct2-net, ct2-demo_default]
     restart: unless-stopped
 
-  # Data Quality Service
   data-quality-service:
     image: node:20-alpine
     container_name: ct2-data-quality-service
@@ -116,61 +111,39 @@ services:
       retries: 30
     labels:
       - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
       - traefik.http.routers.dq.rule=PathPrefix(`/api/data-quality`)
       - traefik.http.routers.dq.entrypoints=web
       - traefik.http.routers.dq.service=dq
       - traefik.http.services.dq.loadbalancer.server.port=8000
       - traefik.http.middlewares.dq-strip.stripprefix.prefixes=/api/data-quality
       - traefik.http.routers.dq.middlewares=dq-strip
-      - traefik.docker.network=ct2-net
-    networks: [ct2-net]
+    networks: [ct2-net, ct2-demo_default]
     restart: unless-stopped
 
-  # Report Compiler Service
   report-compiler-service:
-    image: node:20-alpine
-    container_name: ct2-report-compiler-service
-    working_dir: /app
-    command: ["/bin/sh","-lc","if [ ! -f /app/node_modules/fastify/package.json ]; then echo 'Installing npm deps into /app/node_modules...'; npm ci || npm install; fi; exec node server.mjs"]
+    build:
+      context: ../apps/backend/services/report-compiler-service
+      dockerfile: Dockerfile
+    container_name: ct2-demo-report-compiler
     environment:
-      PORT: "8000"
-      HOST: 0.0.0.0
-      SERVICE_PREFIX: /api/reports
-      API_KEY: ct2-dev-key
-      DISABLE_AUTH: "true"
+      - PORT=8000
+      - API_KEY=ct2-dev-key
+      - ARTIFACT_DIR=/data/artifacts
+      - REPORTS_FALLBACK=true
+      # leave ROUTE_PREFIX unset because Traefik strips /api/reports
     volumes:
-      - ../apps/backend/services/report-compiler-service:/app:ro
-      - report_compiler_node_modules:/app/node_modules
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
+      - ../apps/backend/services/report-compiler-service/assets:/app/assets:ro
+      - reports-artifacts:/data/artifacts
     labels:
       - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
       - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
       - traefik.http.routers.reports.entrypoints=web
-      - traefik.http.routers.reports.service=repsvc
-      - traefik.http.services.repsvc.loadbalancer.server.port=8000
-      - traefik.docker.network=ct2-net
-    networks: [ct2-net]
-    restart: unless-stopped
-
-  traefik:
-    image: traefik:v3.0
-    container_name: ct2-traefik
-    command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --api.dashboard=true
-    ports:
-      - "80:80"
-      - "8080:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks: [ct2-net]
-    profiles: [infra]
+      - traefik.http.middlewares.reports-strip.stripprefix.prefixes=/api/reports
+      - traefik.http.routers.reports.middlewares=reports-strip
+      - traefik.http.services.reports.loadbalancer.server.port=8000
+    networks: [ct2-net, ct2-demo_default]
     restart: unless-stopped
 
   evidence-store:
@@ -187,25 +160,19 @@ services:
       - "9000:9000"
       - "9001:9001"
     networks: [ct2-net]
-    profiles: [infra]
     restart: unless-stopped
 
 networks:
   ct2-net: {}
+  # Use the Traefik network from the ct2-demo stack
+  ct2-demo_default:
+    external: true
 
 volumes:
   evidence-db-data: {}
   minio-data: {}
   minio-config: {}
-  suppliers_node_modules:
-    external: true
-    name: ct2_suppliers_node_modules
-  esg_node_modules:
-    external: true
-    name: ct2_esg_node_modules
-  data_quality_node_modules:
-    external: true
-    name: ct2_data_quality_node_modules
-  report_compiler_node_modules:
-    external: true
-    name: ct2_report_compiler_node_modules
+  suppliers_node_modules: {}
+  esg_node_modules: {}
+  data_quality_node_modules: {}
+  reports-artifacts: {}

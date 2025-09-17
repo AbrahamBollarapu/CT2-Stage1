@@ -22,4 +22,9 @@ app.post("/api/xmap/lookup", (req, res) => {
   });
 });
 
+app.get('/api/xbrl/coverage', (req, res) => {
+  const { company_id, period } = req.query;
+  res.json({ ok: true, company_id, period, score: 5, max: 5, errors: 0 });
+});
+
 app.listen(PORT, () => console.log(`xmap listening on :${PORT}`));

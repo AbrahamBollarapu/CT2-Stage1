@@ -1,0 +1,84 @@
+﻿paths:
+  /api/reports/build:
+    post:
+      summary: Build a report artifact
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                template: { type: string, enum: [truststrip] }
+                period:   { type: string }
+              required: [template, period]
+      responses:
+        '200':
+          description: Build accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, const: true }
+                  artifactId: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/reports/artifacts/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    head:
+      summary: Check artifact existence (friendly fallback)
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Always 200. If artifact is unknown, header `X-Report-Fallback: 1` is present.
+          headers:
+            X-Report-Fallback:
+              description: Present (value "1") when serving a fallback.
+              schema: { type: string, enum: ['1'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    get:
+      summary: Fetch artifact PDF (friendly fallback)
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: PDF stream. If unknown id, a fallback PDF is served inline.
+          headers:
+            Content-Type:
+              schema: { type: string, example: application/pdf }
+            Content-Disposition:
+              schema: { type: string, example: 'inline; filename="fallback.pdf"' }
+            X-Report-Fallback:
+              description: Present (value "1") when response is a fallback.
+              schema: { type: string, enum: ['1'] }
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  responses:
+    Unauthorized:
+      description: Missing/invalid API key
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              ok: { type: boolean, example: false }
+              error: { type: string, example: Unauthorized }
