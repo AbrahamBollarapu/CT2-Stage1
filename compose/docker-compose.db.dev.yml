@@ -1,0 +1,32 @@
+services:
+  evidence-db:
+    environment:
+      - POSTGRES_DB=evidence
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - evidence_db_data:/var/lib/postgresql/data
+
+  timeseries-db:
+    environment:
+      - POSTGRES_DB=timeseries
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - timeseries_db_data:/var/lib/postgresql/data
+
+volumes:
+  evidence_db_data:
+  timeseries_db_data:

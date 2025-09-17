@@ -1,0 +1,20 @@
+[
+  {
+    "id": "sup-001",
+    "name": "Alpha Utilities Pvt Ltd",
+    "site": "Hyderabad",
+    "risk": "Low"
+  },
+  {
+    "id": "sup-002",
+    "name": "Green Devices GmbH",
+    "site": "Berlin",
+    "risk": "Medium"
+  },
+  {
+    "id": "sup-003",
+    "name": "Desert Data LLC",
+    "site": "Dubai",
+    "risk": "Low"
+  }
+]

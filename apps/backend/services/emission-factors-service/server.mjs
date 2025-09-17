@@ -1,28 +1,45 @@
-import express from "express";
+// /app/server.mjs — emission-factors-service (pure Node)
+import { createServer } from "node:http";
+import { URL } from "node:url";
 
-const app = express();
-const PORT = process.env.PORT || 8000;
-const PREFIX = "/api/factors";
+const PORT = Number(process.env.PORT || 8000);
+const PREFIX = (process.env.PREFIX || "/api/emission-factors").replace(/\/+$/,"");
 
-app.use(express.json({ limit: "5mb" }));
-app.get(PREFIX + "/health", (_req, res) => res.json({ ok: true, service: "emission-factors-service" }));
+function sendJSON(res, code, obj) {
+  const body = Buffer.from(JSON.stringify(obj));
+  res.writeHead(code, {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": String(body.length),
+  });
+  res.end(body);
+}
 
-// demo in-memory factors
-let FACTORS = []; // [{activity, unit, factor, scope?}]
+const server = createServer((req, res) => {
+  const url = new URL(req.url, "http://localhost");
+  const p = url.pathname;
 
-app.post(PREFIX + "/seed", (req, res) => {
-  if (!Array.isArray(req.body)) return res.status(400).json({ error: "expected JSON array" });
-  FACTORS = req.body.map(f => ({
-    activity: String(f.activity || ""),
-    unit: String(f.unit || ""),
-    factor: Number(f.factor ?? 0),
-    scope: f.scope || null,
-  }));
-  res.json({ ok: true, count: FACTORS.length });
+  // Health (root + namespaced)
+  if (req.method === "GET" && (p === "/health" || p === `${PREFIX}/health`)) {
+    return sendJSON(res, 200, { ok: true, service: "emission-factors" });
+  }
+
+  // Simple factor lookup: /factors?meter=grid_kwh&unit=kWh
+  if (req.method === "GET" && (p === "/factors" || p === `${PREFIX}/factors`)) {
+    const meter = url.searchParams.get("meter") || "grid_kwh";
+    const unit  = url.searchParams.get("unit")  || "kWh";
+    // hard-coded demo factor
+    const factor = 0.82;
+    return sendJSON(res, 200, {
+      ok: true,
+      meter, unit,
+      factor, ef_unit: "kgCO2e/kWh",
+      source: "static", version: "v1"
+    });
+  }
+
+  sendJSON(res, 404, { ok: false, error: "not_found", path: p });
 });
 
-app.get(PREFIX + "/all", (_req, res) => res.json(FACTORS));
-
-app.listen(PORT, "0.0.0.0", () =>
-  console.log(`[emission-factors-service] listening on 0.0.0.0:${PORT} (prefix=${PREFIX})`)
+server.listen(PORT, "0.0.0.0", () =>
+  console.log(`[emission-factors] listening :${PORT} (PREFIX=${PREFIX})`)
 );

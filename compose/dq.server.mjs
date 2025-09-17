@@ -1,0 +1,1 @@
+﻿<PASTE DQ FILE ABOVE>

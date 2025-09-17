@@ -1,0 +1,331 @@
+{
+  "info": {
+    "name": "CogTechAI S1 Investor Demo",
+    "_postman_id": "cogtechai-s1-investor-demo",
+    "description": "Happy-path flow: Ingest \u2192 ESG \u2192 DQ \u2192 Report (status + artifact)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "apiKey",
+      "value": "ct2-dev-key"
+    },
+    {
+      "key": "orgId",
+      "value": "demo"
+    },
+    {
+      "key": "period",
+      "value": "2024Q4"
+    }
+  ],
+  "item": [
+    {
+      "name": "ESG /health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/esg/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "esg",
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "DQ /health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/data-quality/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "data-quality",
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Reports /health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/reports/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "reports",
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Ingest \u2014 time-series points",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-org-id",
+            "value": "{{orgId}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"org_id\": \"{{orgId}}\", \"meter\": \"grid_kwh\", \"unit\": \"kWh\", \"from\": \"2024-10-01\", \"to\": \"2024-12-31\", \"points\": [{\"ts\": \"2024-11-05T00:00:00Z\", \"value\": 118.0}, {\"ts\": \"2024-11-06T00:00:00Z\", \"value\": 121.4}]}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/time-series/points",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "time-series",
+            "points"
+          ]
+        }
+      }
+    },
+    {
+      "name": "ESG \u2014 compute",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-org-id",
+            "value": "{{orgId}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"account\": \"demo\", \"period\": \"{{period}}\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/esg/compute",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "esg",
+            "compute"
+          ]
+        }
+      }
+    },
+    {
+      "name": "DQ \u2014 evaluate",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-org-id",
+            "value": "{{orgId}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"account\": \"demo\", \"period\": \"{{period}}\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/data-quality/evaluate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "data-quality",
+            "evaluate"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Reports \u2014 build",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-org-id",
+            "value": "{{orgId}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"template\": \"truststrip\", \"period\": \"{{period}}\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/reports/build",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "reports",
+            "build"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Reports \u2014 status (GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-org-id",
+            "value": "{{orgId}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/reports/status/{{artifactId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "reports",
+            "status",
+            "{{artifactId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Reports \u2014 artifact (PDF)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-org-id",
+            "value": "{{orgId}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/reports/artifacts/{{artifactId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "reports",
+            "artifacts",
+            "{{artifactId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Evidence \u2014 HEAD content",
+      "request": {
+        "method": "HEAD",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-org-id",
+            "value": "{{orgId}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/evidence/demo-evidence/content",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "evidence",
+            "demo-evidence",
+            "content"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Evidence \u2014 GET content",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-org-id",
+            "value": "{{orgId}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/evidence/demo-evidence/content",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "evidence",
+            "demo-evidence",
+            "content"
+          ]
+        }
+      }
+    }
+  ]
+}

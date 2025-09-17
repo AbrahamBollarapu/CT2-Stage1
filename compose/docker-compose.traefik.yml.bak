@@ -1,0 +1,30 @@
+services:
+  traefik:
+    image: traefik:2.11
+    container_name: ct2-traefik-1
+    command:
+      # Core
+      - --api.dashboard=true
+      - --log.level=INFO
+
+      # Providers
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+
+      # EntryPoints
+      - --entryPoints.web.address=:8081
+      - --entryPoints.admin.address=:8090
+    ports:
+      - "8081:8081"   # web
+      - "8090:8090"   # admin
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+    networks:
+      - ct2-net
+
+networks:
+  ct2-net:
+    name: ct2_ct2-net

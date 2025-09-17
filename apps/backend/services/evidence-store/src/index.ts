@@ -1,130 +1,69 @@
-import express, { Request, Response } from "express";
-import path from "node:path";
-import fs from "node:fs/promises";
-import { constants as fsconst, existsSync } from "node:fs";
+import express from "express";
+import crypto from "node:crypto";
+import { Buffer } from "node:buffer";
 
-const HOST = process.env.HOST || "0.0.0.0";
-const PORT = Number(process.env.PORT || 8000);
-const ARTIFACT_DIR = process.env.ARTIFACT_DIR || "/var/lib/ct2/artifacts";
-const ORG_DEFAULT = process.env.ORG_DEFAULT || "demo";
+type BlobRecord = {
+  filename: string;
+  contentType: string;
+  bytes: Buffer;
+};
 
-function getOrgId(req: Request): string | undefined {
-  const h = (req.headers["x-org-id"] || req.headers["x-orgid"] || "") as string;
-  const q = (req.query.org || req.query.org_id || "") as string;
-  const v = (h || q || "").toString().trim();
-  return v || undefined;
-}
+const store = new Map<string, Map<string, BlobRecord>>(); // orgId -> evidence_id -> record
 
-function candidatePath(org: string, id: string, ext: string) {
-  return path.join(ARTIFACT_DIR, org, `${id}.${ext}`);
-}
+const app = express();
+app.use(express.json({ limit: "25mb" }));
 
-async function listOrgDirs(): Promise<string[]> {
+const PORT = parseInt(process.env.PORT || "8000", 10);
+
+app.get("/health", (_req, res) => res.json({ ok: true }));
+
+// Traefik strips /api/evidence → our route is /documents
+app.post("/documents", (req, res) => {
   try {
-    const ents = await fs.readdir(ARTIFACT_DIR, { withFileTypes: true });
-    return ents.filter((e) => e.isDirectory()).map((e) => e.name);
-  } catch {
-    return [];
-  }
-}
-
-async function firstExisting(filepaths: string[]): Promise<string | undefined> {
-  for (const p of filepaths) {
-    try {
-      await fs.access(p, fsconst.R_OK);
-      return p;
-    } catch {
-      /* continue */
+    const orgId = (req.header("X-Org-Id") || "default").toString();
+    const { filename, contentType, dataBase64 } = req.body || {};
+    if (!filename || !contentType || !dataBase64) {
+      return res
+        .status(400)
+        .json({ ok: false, error: "filename, contentType, dataBase64 required" });
     }
+    const bytes = Buffer.from(String(dataBase64), "base64");
+    const evidence_id = crypto.randomUUID();
+
+    const perOrg = store.get(orgId) || new Map<string, BlobRecord>();
+    perOrg.set(evidence_id, { filename, contentType, bytes });
+    store.set(orgId, perOrg);
+
+    return res.json({ ok: true, evidence_id });
+  } catch (err: any) {
+    return res.status(500).json({ ok: false, error: err?.message || "error" });
   }
-  return undefined;
-}
+});
 
-function inferMime(p: string): { mime: string; filename: string } {
-  const ext = path.extname(p).toLowerCase();
-  if (ext === ".pdf") return { mime: "application/pdf", filename: path.basename(p) };
-  if (ext === ".zip") return { mime: "application/zip", filename: path.basename(p) };
-  return { mime: "text/plain", filename: path.basename(p) };
-}
+// HEAD /:evidence_id/content  (no body, just headers)
+app.head("/:evidence_id/content", (req, res) => {
+  const orgId = (req.header("X-Org-Id") || "default").toString();
+  const evidence_id = req.params.evidence_id;
+  const perOrg = store.get(orgId);
+  const rec = perOrg?.get(evidence_id);
+  if (!rec) return res.sendStatus(404);
+  res.setHeader("Content-Type", rec.contentType);
+  res.setHeader("Content-Length", String(rec.bytes.length));
+  return res.status(200).end();
+});
 
-async function resolveArtifactPath(req: Request, id: string): Promise<string | undefined> {
-  // 1) If org provided (header or query), try that first
-  const orgHint = getOrgId(req);
+// GET /:evidence_id/content → raw bytes
+app.get("/:evidence_id/content", (req, res) => {
+  const orgId = (req.header("X-Org-Id") || "default").toString();
+  const evidence_id = req.params.evidence_id;
+  const perOrg = store.get(orgId);
+  const rec = perOrg?.get(evidence_id);
+  if (!rec) return res.status(404).json({ ok: false, error: "not found" });
+  res.setHeader("Content-Type", rec.contentType);
+  res.setHeader("Content-Length", String(rec.bytes.length));
+  return res.status(200).send(rec.bytes);
+});
 
-  if (orgHint) {
-    const p = await firstExisting([
-      candidatePath(orgHint, id, "pdf"),
-      candidatePath(orgHint, id, "zip"),
-      candidatePath(orgHint, id, "txt"),
-    ]);
-    if (p) return p;
-  }
-
-  // 2) Try default org
-  const pDefault = await firstExisting([
-    candidatePath(ORG_DEFAULT, id, "pdf"),
-    candidatePath(ORG_DEFAULT, id, "zip"),
-    candidatePath(ORG_DEFAULT, id, "txt"),
-  ]);
-  if (pDefault) return pDefault;
-
-  // 3) Probe all org directories (backward compatible / auto-discovery)
-  const dirs = await listOrgDirs();
-  for (const org of dirs) {
-    const p = await firstExisting([
-      candidatePath(org, id, "pdf"),
-      candidatePath(org, id, "zip"),
-      candidatePath(org, id, "txt"),
-    ]);
-    if (p) return p;
-  }
-
-  return undefined;
-}
-
-function mountRoutes(app: express.Express) {
-  app.get("/health", (_req, res) => res.json({ status: "healthy" }));
-
-  // Explicit org-aware route (S2-style)
-  app.get("/orgs/:orgId/artifacts/:id/content", async (req: Request, res: Response) => {
-    const { orgId, id } = req.params;
-    const found = await firstExisting([
-      candidatePath(orgId, id, "pdf"),
-      candidatePath(orgId, id, "zip"),
-      candidatePath(orgId, id, "txt"),
-    ]);
-    if (!found) return res.status(404).json({ ok: false, error: "not_found" });
-    const { mime, filename } = inferMime(found);
-    res.setHeader("Content-Type", mime);
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    return res.sendFile(found);
-  });
-
-  // Backward-compatible route (S1), now org-aware via header/query/search
-  app.get("/artifacts/:id/content", async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const found = await resolveArtifactPath(req, id);
-    if (!found) {
-      console.warn("[evidence] artifact_not_found", { id, dir: ARTIFACT_DIR });
-      return res.status(404).json({ ok: false, error: "not_found" });
-    }
-    const { mime, filename } = inferMime(found);
-    res.setHeader("Content-Type", mime);
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    return res.sendFile(found);
-  });
-}
-
-async function main() {
-  await fs.mkdir(ARTIFACT_DIR, { recursive: true });
-  const app = express();
-  mountRoutes(app);
-  console.log("[evidence] ARTIFACT_DIR ready:", ARTIFACT_DIR);
-  console.log("[evidence] listening on %d, artifacts at %s", PORT, ARTIFACT_DIR);
-  app.listen(PORT, HOST);
-}
-
-main().catch((e) => {
-  console.error("fatal", e);
-  process.exit(1);
+app.listen(PORT, () => {
+  console.log(`evidence-store listening on :${PORT}`);
 });

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CogTechAI — S1 Demo</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 0; color: #0b1b2b; }
+    header { padding: 16px 24px; background: #f5f9ff; border-bottom: 1px solid #e1e8f5; }
+    .badges { display: flex; gap: 8px; font-size: 12px; }
+    .badge { padding: 4px 8px; border-radius: 999px; background: #e7f1ff; }
+    main { padding: 24px; max-width: 980px; margin: 0 auto; }
+    .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+    .tile { border: 1px solid #e1e8f5; border-radius: 12px; padding: 16px; background: #ffffff; }
+    .muted { color: #5b6b7c; font-size: 14px; }
+    button { padding: 10px 16px; border: 0; border-radius: 10px; background: #2b6cff; color: #fff; font-weight: 600; cursor: not-allowed; opacity: .6; }
+    .cta { margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h2>CogTechAI — Investor Demo (Day 1)</h2>
+    <div class="badges">
+      <span class="badge">S1</span>
+      <span class="badge" style="opacity:.5">S2</span>
+      <span class="badge" style="opacity:.5">S3</span>
+    </div>
+  </header>
+  <main>
+    <h3>Landing</h3>
+    <p class="muted">Evidence‑first ESG → Zero‑Error iXBRL. This Day‑1 build scaffolds the routes and UI shell. The “Run Demo” button will be enabled on Day 4.</p>
+    <div class="cta"><button disabled>Run Demo (coming on Day 4)</button></div>
+    <h4 style="margin-top:24px">Dashboard (preview)</h4>
+    <div class="tiles">
+      <div class="tile"><strong>Ingest</strong><div class="muted">pending</div></div>
+      <div class="tile"><strong>ESG</strong><div class="muted">pending</div></div>
+      <div class="tile"><strong>DQ</strong><div class="muted">pending</div></div>
+      <div class="tile"><strong>Report</strong><div class="muted">pending</div></div>
+    </div>
+  </main>
+</body>
+</html>

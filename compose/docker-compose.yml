@@ -1,172 +1,211 @@
-# app services + builds (no ports; Traefik is the gateway)
 services:
+  evidence-db:
+    image: postgres:15-alpine
+    container_name: ct2-evidence-db
+    environment:
+      POSTGRES_DB: evidence
+      POSTGRES_USER: evidence
+      POSTGRES_PASSWORD: evidence
+    ports:
+      - "5432:5432"
+    volumes:
+      - evidence-db-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evidence -d evidence || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  suppliers-service:
+    image: node:20-alpine
+    container_name: ct2-suppliers-service
+    working_dir: /app
+    # Exec-form, single line to avoid CRLF issues
+    command: ["/bin/sh","-lc","if [ ! -f /app/node_modules/fastify/package.json ]; then echo 'Installing npm deps into /app/node_modules...'; npm ci || npm install; fi; exec node server.mjs"]
+    environment:
+      PORT: "8000"
+      HOST: 0.0.0.0
+      SERVICE_PREFIX: /api
+      API_KEY: ct2-dev-key
+      DISABLE_AUTH: "true"  # ← ADD THIS LINE TO DISABLE AUTH
+      PGHOST: evidence-db
+      PGUSER: evidence
+      PGPASSWORD: evidence
+      PGDATABASE: evidence
+      PGPORT: "5432"
+    volumes:
+      # read-only source code
+      - ../apps/backend/services/supplier-service:/app:ro
+      # writable node_modules cached in a named volume
+      - suppliers_node_modules:/app/node_modules
+    depends_on:
+      evidence-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.suppliers-api.rule=PathPrefix(`/api`)
+      - traefik.http.routers.suppliers-api.entrypoints=web
+      - traefik.http.routers.suppliers-api.service=suppliers-service
+      - traefik.http.services.suppliers-service.loadbalancer.server.port=8000
+      - traefik.http.routers.suppliers-health.rule=Path(`/health`)
+      - traefik.http.routers.suppliers-health.entrypoints=web
+      - traefik.http.routers.suppliers-health.service=suppliers-service
+      - traefik.docker.network=ct2-net  # ← CRITICAL: Add this line
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  # ESG Service
   esg-service:
-    build:
-      context: ../apps/backend/services/esg-service
-      dockerfile: Dockerfile
-    image: ct2/esg-service
+    image: node:20-alpine
+    container_name: ct2-esg-service
+    working_dir: /app
+    command: ["/bin/sh","-lc","if [ ! -f /app/node_modules/fastify/package.json ]; then echo 'Installing npm deps into /app/node_modules...'; npm ci || npm install; fi; exec node server.mjs"]
     environment:
-      SERVICE_NAME: esg-service
+      PORT: "8000"
+      HOST: 0.0.0.0
       SERVICE_PREFIX: /api/esg
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
+      API_KEY: ct2-dev-key
+      DISABLE_AUTH: "true"
+    volumes:
+      - ../apps/backend/services/esg-service:/app:ro
+      - esg_node_modules:/app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)
+      - traefik.http.routers.esg.entrypoints=web
+      - traefik.http.routers.esg.service=esg
+      - traefik.http.services.esg.loadbalancer.server.port=8000
+      - traefik.http.middlewares.esg-strip.stripprefix.prefixes=/api/esg
+      - traefik.http.routers.esg.middlewares=esg-strip
+      - traefik.docker.network=ct2-net
     networks: [ct2-net]
     restart: unless-stopped
 
+  # Data Quality Service
+  data-quality-service:
+    image: node:20-alpine
+    container_name: ct2-data-quality-service
+    working_dir: /app
+    command: ["/bin/sh","-lc","if [ ! -f /app/node_modules/fastify/package.json ]; then echo 'Installing npm deps into /app/node_modules...'; npm ci || npm install; fi; exec node server.mjs"]
+    environment:
+      PORT: "8000"
+      HOST: 0.0.0.0
+      SERVICE_PREFIX: /api/data-quality
+      API_KEY: ct2-dev-key
+      DISABLE_AUTH: "true"
+    volumes:
+      - ../apps/backend/services/data-quality-service:/app:ro
+      - data_quality_node_modules:/app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dq.rule=PathPrefix(`/api/data-quality`)
+      - traefik.http.routers.dq.entrypoints=web
+      - traefik.http.routers.dq.service=dq
+      - traefik.http.services.dq.loadbalancer.server.port=8000
+      - traefik.http.middlewares.dq-strip.stripprefix.prefixes=/api/data-quality
+      - traefik.http.routers.dq.middlewares=dq-strip
+      - traefik.docker.network=ct2-net
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  # Report Compiler Service
   report-compiler-service:
-    build:
-      context: ../apps/backend/services/report-compiler-service
-      dockerfile: Dockerfile
-    image: ct2/report-compiler-service
+    image: node:20-alpine
+    container_name: ct2-report-compiler-service
+    working_dir: /app
+    command: ["/bin/sh","-lc","if [ ! -f /app/node_modules/fastify/package.json ]; then echo 'Installing npm deps into /app/node_modules...'; npm ci || npm install; fi; exec node server.mjs"]
     environment:
-      SERVICE_NAME: report-compiler-service
-      SERVICE_PREFIX: /api/reports
-      HOST: 0.0.0.0
       PORT: "8000"
-    command: ["npm","run","start:prod"]
+      HOST: 0.0.0.0
+      SERVICE_PREFIX: /api/reports
+      API_KEY: ct2-dev-key
+      DISABLE_AUTH: "true"
+    volumes:
+      - ../apps/backend/services/report-compiler-service:/app:ro
+      - report_compiler_node_modules:/app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
+      - traefik.http.routers.reports.entrypoints=web
+      - traefik.http.routers.reports.service=repsvc
+      - traefik.http.services.repsvc.loadbalancer.server.port=8000
+      - traefik.docker.network=ct2-net
     networks: [ct2-net]
     restart: unless-stopped
 
-  ingestion-service:
-    build:
-      context: ../apps/backend/services/ingestion-service
-      dockerfile: Dockerfile
-    image: ct2/ingestion-service
-    environment:
-      SERVICE_NAME: ingestion-service
-      SERVICE_PREFIX: /api/ingest
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
+  traefik:
+    image: traefik:v3.0
+    container_name: ct2-traefik
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --api.dashboard=true
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks: [ct2-net]
+    profiles: [infra]
     restart: unless-stopped
 
   evidence-store:
-    build:
-      context: ../apps/backend/services/evidence-store
-      dockerfile: Dockerfile
-    image: ct2/evidence-store
+    image: minio/minio:RELEASE.2024-08-17T01-24-54Z
+    container_name: ct2-evidence-store
     environment:
-      SERVICE_NAME: evidence-store
-      SERVICE_PREFIX: /api/evidence
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+      - minio-config:/root/.minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     networks: [ct2-net]
-    restart: unless-stopped
-
-  time-series-service:
-    build:
-      context: ../apps/backend/services/time-series-service
-      dockerfile: Dockerfile
-    image: ct2/time-series-service
-    environment:
-      SERVICE_NAME: time-series-service
-      SERVICE_PREFIX: /api/timeseries
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
-    networks: [ct2-net]
-    restart: unless-stopped
-
-  emission-factors-service:
-    build:
-      context: ../apps/backend/services/emission-factors-service
-      dockerfile: Dockerfile
-    image: ct2/emission-factors-service
-    environment:
-      SERVICE_NAME: emission-factors-service
-      SERVICE_PREFIX: /api/factors
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
-    networks: [ct2-net]
-    restart: unless-stopped
-
-  data-quality-service:
-    build:
-      context: ../apps/backend/services/data-quality-service
-      dockerfile: Dockerfile
-    image: ct2/data-quality-service
-    environment:
-      SERVICE_NAME: data-quality-service
-      SERVICE_PREFIX: /api/data-quality
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
-    networks: [ct2-net]
-    restart: unless-stopped
-
-  kpi-calculation-service:
-    build:
-      context: ../apps/backend/services/kpi-calculation-service
-      dockerfile: Dockerfile
-    image: ct2/kpi-calculation-service
-    environment:
-      SERVICE_NAME: kpi-calculation-service
-      SERVICE_PREFIX: /api/kpi
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
-    networks: [ct2-net]
-    restart: unless-stopped
-
-  xbrl-mapping-service:
-    build:
-      context: ../apps/backend/services/xbrl-mapping-service
-      dockerfile: Dockerfile
-    image: ct2/xbrl-mapping-service
-    environment:
-      SERVICE_NAME: xbrl-mapping-service
-      SERVICE_PREFIX: /api/xbrl
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
-    networks: [ct2-net]
-    restart: unless-stopped
-
-  dashboards-service:
-    build:
-      context: ../apps/backend/services/dashboards-service
-      dockerfile: Dockerfile
-    image: ct2/dashboards-service
-    environment:
-      SERVICE_NAME: dashboards-service
-      SERVICE_PREFIX: /api/dash
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
-    networks: [ct2-net]
-    restart: unless-stopped
-
-  search-index-service:
-    build:
-      context: ../apps/backend/services/search-index-service
-      dockerfile: Dockerfile
-    image: ct2/search-index-service
-    environment:
-      SERVICE_NAME: search-index-service
-      SERVICE_PREFIX: /api/search
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
-    networks: [ct2-net]
-    restart: unless-stopped
-
-  jobs-service:
-    build:
-      context: ../apps/backend/services/jobs-service
-      dockerfile: Dockerfile
-    image: ct2/jobs-service
-    environment:
-      SERVICE_NAME: jobs-service
-      SERVICE_PREFIX: /api/jobs
-      HOST: 0.0.0.0
-      PORT: "8000"
-    command: ["npm","run","start:prod"]
-    networks: [ct2-net]
+    profiles: [infra]
     restart: unless-stopped
 
 networks:
   ct2-net: {}
+
+volumes:
+  evidence-db-data: {}
+  minio-data: {}
+  minio-config: {}
+  suppliers_node_modules:
+    external: true
+    name: ct2_suppliers_node_modules
+  esg_node_modules:
+    external: true
+    name: ct2_esg_node_modules
+  data_quality_node_modules:
+    external: true
+    name: ct2_data_quality_node_modules
+  report_compiler_node_modules:
+    external: true
+    name: ct2_report_compiler_node_modules

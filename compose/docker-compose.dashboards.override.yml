@@ -1,0 +1,9 @@
+services:
+  dashboards-service:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_ct2-net
+      # Only serve non-API paths
+      - traefik.http.routers.web.rule=Host(`localhost`) && PathPrefix(`/`) && !PathPrefix(`/api`)
+      - traefik.http.routers.web.entrypoints=web
+      - traefik.http.routers.web.priority=100

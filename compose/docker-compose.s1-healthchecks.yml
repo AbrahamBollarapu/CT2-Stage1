@@ -1,0 +1,53 @@
+# Compose override: add healthchecks and align depends_on for core S1 services
+# Load with: docker compose -f docker-compose.yml -f docker-compose.traefik.yml \
+#   -f docker-compose.days1-4.yml -f docker-compose.routers.yml \
+#   -f docker-compose.s1-healthchecks.yml --profile day1 up -d
+
+services:
+  emission-factors-service:
+    # Required because other services wait on EF to be healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 2s
+
+  time-series-service:
+    # Your TS already has /health — make Compose aware
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 2s
+
+  esg-service:
+    # ESG depends on EF and TS. If ESG also exposes /health, feel free to add a similar healthcheck here.
+    depends_on:
+      emission-factors-service:
+        condition: service_healthy
+      time-series-service:
+        condition: service_healthy
+
+  data-quality-service:
+    # DQ reads TS (and may call ESG); wait for TS definitely, ESG can be started or healthy if you prefer.
+    depends_on:
+      time-series-service:
+        condition: service_healthy
+      esg-service:
+        condition: service_started
+
+  kpi-calculation-service:
+    depends_on:
+      time-series-service:
+        condition: service_healthy
+
+  ingestion-service:
+    # Optional but nice to have if anything waits on it
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 3s

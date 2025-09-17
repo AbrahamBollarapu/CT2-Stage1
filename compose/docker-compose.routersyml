@@ -1,0 +1,101 @@
+services:
+  report-compiler-service:
+    networks:
+    - ct2-net
+    - ct2_ct2-net
+    labels:
+    - traefik.enable=true
+    - traefik.docker.network=ct2_ct2-net
+    - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
+    - traefik.http.routers.reports.entrypoints=web
+    - traefik.http.services.reports.loadbalancer.server.port=8000
+    - traefik.http.middlewares.reports-strip.stripprefix.prefixes=/api/reports
+    - traefik.http.routers.reports.middlewares=reports-strip@docker
+  ingestion-service:
+    networks:
+    - ct2-net
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.ingest.rule=(PathPrefix(`/api/ingest`) || PathPrefix(`/api/ingestion`))
+    - traefik.http.routers.ingest.entrypoints=web
+    - traefik.http.services.ingest.loadbalancer.server.port=8000
+  emission-factors-service:
+    networks:
+    - ct2-net
+    - ct2_ct2-net
+    labels:
+    - traefik.http.routers.factors.rule=PathPrefix(`/api/factors`)
+    - traefik.http.routers.factors.entrypoints=web
+    - traefik.http.services.factors.loadbalancer.server.port=8000
+    - traefik.enable=true
+    - traefik.docker.network=ct2_ct2-net
+    - traefik.http.routers.emission-factors.rule=PathPrefix(`/api/emission-factors`)
+    - traefik.http.routers.emission-factors.entrypoints=web
+    - traefik.http.services.emission-factors.loadbalancer.server.port=8000
+    - traefik.http.middlewares.emission-factors-strip.stripprefix.prefixes=/api/emission-factors
+    - traefik.http.routers.emission-factors.middlewares=emission-factors-strip@docker
+  data-quality-service:
+    networks:
+    - ct2-net
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.data-quality.rule=(PathPrefix(`/api/data-quality`) || PathPrefix(`/api/dataquality`))
+    - traefik.http.routers.data-quality.entrypoints=web
+    - traefik.http.services.data-quality.loadbalancer.server.port=8000
+  kpi-calculation-service:
+    networks:
+    - ct2-net
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.kpi.rule=PathPrefix(`/api/kpi`)
+    - traefik.http.routers.kpi.entrypoints=web
+    - traefik.http.services.kpi.loadbalancer.server.port=8000
+  dashboards-service:
+    networks:
+    - ct2-net
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.dash.rule=(PathPrefix(`/api/dash`) || PathPrefix(`/api/dashboards`))
+    - traefik.http.routers.dash.entrypoints=web
+    - traefik.http.services.dash.loadbalancer.server.port=8000
+  search-index-service:
+    networks:
+    - ct2-net
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.search.rule=(PathPrefix(`/api/search`) || PathPrefix(`/api/search-index`))
+    - traefik.http.routers.search.entrypoints=web
+    - traefik.http.services.search.loadbalancer.server.port=8000
+  jobs-service:
+    networks:
+    - ct2-net
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.jobs.rule=PathPrefix(`/api/jobs`)
+    - traefik.http.routers.jobs.entrypoints=web
+    - traefik.http.services.jobs.loadbalancer.server.port=8000
+  evidence-store:
+    labels:
+    - traefik.enable=true
+    - traefik.docker.network=ct2_ct2-net
+    - traefik.http.routers.evidence.rule=PathPrefix(`/api/evidence`)
+    - traefik.http.routers.evidence.entrypoints=web
+    - traefik.http.services.evidence.loadbalancer.server.port=8000
+    - traefik.http.middlewares.evidence-strip.stripprefix.prefixes=/api/evidence
+    - traefik.http.routers.evidence.middlewares=evidence-strip@docker
+    networks:
+    - ct2_ct2-net
+  time-series-service:
+    labels:
+    - traefik.enable=true
+    - traefik.docker.network=ct2_ct2-net
+    - traefik.http.routers.time-series.rule=PathPrefix(`/api/time-series`)
+    - traefik.http.routers.time-series.entrypoints=web
+    - traefik.http.services.time-series.loadbalancer.server.port=8000
+    - traefik.http.middlewares.time-series-strip.stripprefix.prefixes=/api/time-series
+    - traefik.http.routers.time-series.middlewares=time-series-strip@docker
+    networks:
+    - ct2_ct2-net
+networks:
+  ct2_ct2-net:
+    external: true

@@ -1,27 +1,34 @@
+# docker-compose.traefik.yml
 services:
   traefik:
-    image: traefik:2.11
+    image: traefik:v2.10
     container_name: ct2-traefik-1
     command:
-      - --log.level=INFO
-      # entrypoints
-      - --entryPoints.web.address=:8081
-      - --entryPoints.admin.address=:8090
-      # providers
       - --providers.docker=true
-      - --providers.docker.exposedByDefault=false
-      - --providers.docker.network=ct2_ct2-net
-      - --providers.file.directory=/etc/traefik/dynamic
-      - --providers.file.watch=true
-      # API + dashboard
-      - --api=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=ct2-net
+      - --entrypoints.web.address=:80
+      - --entrypoints.admin.address=:8090
       - --api.dashboard=true
+      - --api.insecure=false
     ports:
-      - "8081:8081"   # web
-      - "8090:8090"   # admin (API/Dashboard)
+      - "80:80"     # web: your APIs (http://localhost/…)
+      - "8090:8090" # admin: dashboard + /api (http://localhost:8090/)
     volumes:
-      - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.traefik-admin.rule=PathPrefix(`/dashboard`) || PathPrefix(`/api`)
+      - traefik.http.routers.traefik-admin.entrypoints=admin
+      - traefik.http.routers.traefik-admin.service=api@internal
     networks:
-      - ct2_ct2-net
+      - ct2-default
+      - ct2-net
+
+networks:
+  ct2-default:
+    external: true
+    name: ct2_default
+  ct2-net:
+    external: true
+    name: ct2-net

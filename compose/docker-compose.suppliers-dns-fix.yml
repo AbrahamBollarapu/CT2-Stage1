@@ -1,0 +1,21 @@
+services:
+  suppliers-service:
+    # Make sure we are NOT using host networking (which breaks Docker DNS)
+    network_mode: null
+    # Be explicit about env (you already have these; keeping them here makes it unambiguous)
+    environment:
+      PGHOST: evidence-db
+      PGUSER: evidence
+      PGPASSWORD: evidence
+      PGDATABASE: evidence
+      PGPORT: "5432"
+    # Ensure DB starts first (and is healthy) before we get traffic
+    depends_on:
+      evidence-db:
+        condition: service_healthy
+    # Belt & suspenders for name resolution
+    links:
+      - evidence-db
+    # Join the default project network so service-name DNS works
+    networks:
+      - default

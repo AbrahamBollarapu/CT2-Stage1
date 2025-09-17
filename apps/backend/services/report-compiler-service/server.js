@@ -1,0 +1,20 @@
+import express from "express";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const app = express(); app.use(express.json());
+app.get("/health", (_q,r)=>r.json({ok:true}));
+app.get("/api/reports/health", (_q,r)=>r.json({ok:true}));
+const builds = new Map(); const ART_DIR = path.join(__dirname,"artifacts");
+const FALLBACK = path.join(ART_DIR,"truststrip-demo.pdf");
+function ensureFallback(){ if(!fs.existsSync(ART_DIR)) fs.mkdirSync(ART_DIR,{recursive:true});
+  if(!fs.existsSync(FALLBACK)) fs.writeFileSync(FALLBACK, Buffer.from("%PDF-1.1\n% CogTechAI Demo PDF\n%%EOF","utf8")); }
+app.post("/api/reports/build",(req,res)=>{ ensureFallback(); const id=`rep_${Date.now()}`;
+  builds.set(id,{status:"queued"}); setTimeout(()=>{ const b=builds.get(id); if(b) b.status="completed"; },500);
+  res.json({ok:true,template:req.body?.template||"truststrip",period:req.body?.period,artifactId:id,status:"queued"}); });
+app.get("/api/reports/status/:id",(req,res)=>{ const b=builds.get(req.params.id); if(!b) return res.status(404).json({status:"not_found"}); res.json({status:b.status}); });
+app.get("/api/reports/artifacts/:id",(req,res)=>{ ensureFallback(); const b=builds.get(req.params.id);
+  if(!b||b.status!=="completed") return res.status(409).json({error:"not_ready"}); res.set("Content-Type","application/pdf"); res.send(fs.readFileSync(FALLBACK)); });
+const port=process.env.PORT||8000; app.listen(port,()=>console.log("report-compiler-service on :"+port));

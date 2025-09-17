@@ -1,0 +1,37 @@
+# docker-compose.traefik.net.override.yml
+services:
+  traefik:
+    networks:
+      - ct2-net
+      - ct2-demo_ct2-net
+
+  suppliers-service:
+    networks:
+      - ct2-net            # DB lives here
+      - ct2-demo_ct2-net   # Traefik sees it here
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_ct2-net
+      # Suppliers API
+      - traefik.http.routers.suppliers.rule=Host(`localhost`) && PathPrefix(`/api/suppliers`)
+      - traefik.http.routers.suppliers.entrypoints=web
+      - traefik.http.routers.suppliers.priority=26000
+      - traefik.http.routers.suppliers.service=suppliers-svc
+      - traefik.http.services.suppliers-svc.loadbalancer.server.port=8000
+      # Assessments API (same container)
+      - traefik.http.routers.assessments.rule=Host(`localhost`) && PathPrefix(`/api/assessments`)
+      - traefik.http.routers.assessments.entrypoints=web
+      - traefik.http.routers.assessments.priority=26000
+      - traefik.http.routers.assessments.service=suppliers-svc
+
+  evidence-db:
+    networks:
+      ct2-net:
+        aliases:
+          - evidence-db
+
+networks:
+  ct2-net:
+    external: true
+  ct2-demo_ct2-net:
+    external: true

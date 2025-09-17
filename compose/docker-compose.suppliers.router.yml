@@ -1,0 +1,27 @@
+# docker-compose.suppliers.router.yml
+services:
+  suppliers-service:
+    networks:
+      - ct2-default
+      - ct2-net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.services.suppliers.loadbalancer.server.port=8000
+
+      # API router (/api → service on port 8000)
+      - traefik.http.routers.suppliers.entrypoints=web
+      - traefik.http.routers.suppliers.rule=PathPrefix(`/api`)
+
+      # Health router (/health → service on port 8000)
+      - traefik.http.routers.suppliers-health.entrypoints=web
+      - traefik.http.routers.suppliers-health.rule=Path(`/health`)
+      - traefik.http.routers.suppliers-health.service=suppliers
+
+networks:
+  ct2-default:
+    external: true
+    name: ct2_default
+  ct2-net:
+    external: true
+    name: ct2-net

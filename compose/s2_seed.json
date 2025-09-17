@@ -1,0 +1,32 @@
+{
+  "org_id": "demo",
+  "suppliers": [
+    { "name": "Acme Plastics", "country": "IN" },
+    { "name": "Zen Metals",  "country": "SG" }
+  ],
+  "assessments": [
+    {
+      "title": "ESG Basic",
+      "version": "1.0",
+      "schema": {
+        "questions": [
+          { "id": "q1", "text": "Policy for emissions?", "type": "boolean", "weight": 20 },
+          { "id": "q2", "text": "Energy data audited?",  "type": "boolean", "weight": 20 },
+          { "id": "q3", "text": "Renewables >25%?",      "type": "boolean", "weight": 20 },
+          { "id": "q4", "text": "Waste mgmt in place?",  "type": "boolean", "weight": 20 },
+          { "id": "q5", "text": "Water KPI tracked?",    "type": "boolean", "weight": 20 }
+        ]
+      }
+    }
+  ],
+  "assignments": [
+    { "supplier": "Acme Plastics", "assessment": "ESG Basic@1.0" },
+    { "supplier": "Zen Metals",    "assessment": "ESG Basic@1.0" }
+  ],
+  "responses": [
+    { "supplier": "Acme Plastics", "assessment": "ESG Basic@1.0",
+      "answers": { "q1": true, "q2": true, "q3": false, "q4": true, "q5": true } },
+    { "supplier": "Zen Metals", "assessment": "ESG Basic@1.0",
+      "answers": { "q1": true, "q2": false, "q3": false, "q4": true, "q5": false } }
+  ]
+}

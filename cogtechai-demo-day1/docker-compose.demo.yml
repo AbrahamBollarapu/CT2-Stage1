@@ -1,0 +1,96 @@
+version: "3.9"
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: ct2-traefik-demo
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:8081
+      - --api.dashboard=true
+      - --log.level=INFO
+    ports:
+      - "8081:8081"   # web
+      - "8090:8080"   # dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "traefik.enable=true"
+
+  dashboards-service:
+    build: ./dashboards-service
+    container_name: ct2-dashboards-service-demo
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dash-web.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.dash-web.entrypoints=web"
+      - "traefik.http.routers.dash-web.priority=1"
+      - "traefik.http.services.dash-web.loadbalancer.server.port=3000"
+
+  jobs-service:
+    build: ./jobs-service
+    container_name: ct2-jobs-service-demo
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jobs-api.rule=PathPrefix(`/api/jobs`)"
+      - "traefik.http.routers.jobs-api.entrypoints=web"
+      - "traefik.http.routers.jobs-api.middlewares=jobs-strip"
+      - "traefik.http.routers.jobs-api.priority=10"
+      - "traefik.http.services.jobs-svc.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.jobs-strip.stripprefix.prefixes=/api/jobs"
+
+  evidence-store:
+    build: ./evidence-store
+    container_name: ct2-evidence-store-demo
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.evidence-api.rule=PathPrefix(`/api/evidence`)"
+      - "traefik.http.routers.evidence-api.entrypoints=web"
+      - "traefik.http.routers.evidence-api.middlewares=evidence-strip"
+      - "traefik.http.routers.evidence-api.priority=10"
+      - "traefik.http.services.evidence-svc.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.evidence-strip.stripprefix.prefixes=/api/evidence"
+
+  time-series-service:
+    build: ./time-series-service
+    container_name: ct2-time-series-service-demo
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ts-api.rule=PathPrefix(`/api/time-series`)"
+      - "traefik.http.routers.ts-api.entrypoints=web"
+      - "traefik.http.routers.ts-api.middlewares=ts-strip"
+      - "traefik.http.routers.ts-api.priority=10"
+      - "traefik.http.services.ts-svc.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.ts-strip.stripprefix.prefixes=/api/time-series"
+
+  emission-factors-service:
+    build: ./emission-factors-service
+    container_name: ct2-emission-factors-service-demo
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ef-api.rule=PathPrefix(`/api/emission-factors`)"
+      - "traefik.http.routers.ef-api.entrypoints=web"
+      - "traefik.http.routers.ef-api.middlewares=ef-strip"
+      - "traefik.http.routers.ef-api.priority=10"
+      - "traefik.http.services.ef-svc.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.ef-strip.stripprefix.prefixes=/api/emission-factors"
+
+profiles:
+  demo:
+    - traefik
+    - dashboards-service
+    - jobs-service
+    - evidence-store
+    - time-series-service
+    - emission-factors-service

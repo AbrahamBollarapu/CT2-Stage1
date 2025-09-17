@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ct2
+      POSTGRES_PASSWORD: ct2pass
+      POSTGRES_DB: ct2
+    ports:
+      - "5434:5432" # avoids any local PG conflicts
+    volumes:
+      - ct2_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ct2 -d ct2"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+    networks:
+      default:
+        aliases:
+          - evidence-db
+
+  # Build-first flow (recommended)
+  suppliers-service:
+    build:
+      context: ../apps/backend/services/supplier-service
+    environment:
+      PORT: "8000"
+      DATABASE_URL: "postgresql://ct2:ct2pass@db:5432/ct2"
+      AUTH_MODE: "dev"
+      X_API_KEY: "ct2-dev-key"
+      PGOPTIONS: -c search_path=public
+    ports:
+      - "8085:8000"   # keep Traefik free on 8081
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # One-shot migration runner (optional; run with profile "migrations")
+  db-migrate:
+    image: postgres:16-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../apps/backend/services/supplier-service/db/migrations:/migrations:ro
+    entrypoint: >
+      sh -lc '
+        set -e;
+        for f in /migrations/*.sql; do
+          echo "==> Running $${f}";
+          psql "postgresql://ct2:ct2pass@db:5432/ct2" -v ON_ERROR_STOP=1 -f "$${f}";
+        done
+      '
+    profiles: ["migrations"]
+    restart: "no"
+
+volumes:
+  ct2_db_data:

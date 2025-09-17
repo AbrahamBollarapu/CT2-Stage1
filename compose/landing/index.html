@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CT2 Landing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --ok:#16a34a; --bad:#dc2626; --muted:#64748b; --ink:#0f172a; --bg:#f8fafc; --card:#ffffff; }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;}
+    .wrap{max-width:1100px;margin:32px auto;padding:0 16px;}
+    .hero{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:20px}
+    input[type="text"]{flex:1;min-width:240px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;font-size:16px}
+    button{padding:10px 14px;border-radius:10px;border:1px solid #0ea5e9;background:#0ea5e9;color:#fff;font-weight:600;cursor:pointer}
+    button.secondary{border-color:#e2e8f0;background:#fff;color:#0f172a}
+    .grid{display:grid;grid-template-columns:repeat(4, minmax(0,1fr));gap:12px}
+    .card{background:var(--card);border:1px solid #e2e8f0;border-radius:14px;padding:14px}
+    .status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;margin-right:6px}
+    .ok{background:var(--ok)} .bad{background:var(--bad)} .muted{background:var(--muted)}
+    .mutetxt{color:var(--muted);font-size:12px}
+    pre{background:#0b1020;color:#d1e7ff;padding:12px;border-radius:10px;overflow:auto}
+    a{color:#0ea5e9;text-decoration:none}
+    .row{display:flex;gap:8px;align-items:center}
+    .results .item{padding:8px 0;border-bottom:1px dashed #e2e8f0}
+    .results .item:last-child{border-bottom:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h2 style="margin:0">CT2 Demo</h2>
+      <div class="row" style="flex:1">
+        <input id="q" type="text" placeholder="Search (stubbed) — try 'supplier policy' or 'report'…" />
+        <button onclick="search()">Search</button>
+        <button class="secondary" onclick="build()">Build Report</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <strong>Live Status</strong>
+      <div id="status" class="grid" style="margin-top:10px"></div>
+      <div class="mutetxt">Auto-refreshes every 10s</div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <strong>Search Results</strong>
+      <div id="results" class="results" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <strong>API Trace (last request)</strong>
+      <pre id="trace" style="min-height:90px"></pre>
+    </div>
+  </div>
+
+<script>
+const H = { "X-Org-Id": "demo" };
+const services = [
+  {name:"evidence", path:"/api/evidence/health"},
+  {name:"ingest", path:"/api/ingest/health"},
+  {name:"esg", path:"/api/esg/health"},
+  {name:"time-series", path:"/api/time-series/health"},
+  {name:"emission-factors", path:"/api/emission-factors/health"},
+  {name:"data-quality", path:"/api/data-quality/health"},
+  {name:"kpi", path:"/api/kpi/health"},
+  {name:"reports", path:"/api/reports/health"},
+  {name:"xbrl", path:"/api/xbrl/health"},
+  {name:"search", path:"/api/search/health"},
+  {name:"jobs", path:"/api/jobs/health"},
+  {name:"dash", path:"/api/dash/health"}
+];
+
+function el(id){ return document.getElementById(id); }
+function setTrace(obj){ el("trace").textContent = (typeof obj==="string") ? obj : JSON.stringify(obj,null,2); }
+
+async function ping(service){
+  try{
+    const r = await fetch(service.path, { headers:H });
+    return { name: service.name, ok: r.ok };
+  }catch(e){
+    return { name: service.name, ok: false };
+  }
+}
+
+async function refreshStatus(){
+  const arr = await Promise.all(services.map(ping));
+  const host = el("status");
+  host.innerHTML = arr.map(s => {
+    const cls = s.ok ? "ok" : "bad";
+    return `<div class="card"><span class="status-dot ${cls}"></span>${s.name}</div>`;
+  }).join("");
+}
+setInterval(refreshStatus, 10000);
+refreshStatus();
+
+async function build(){
+  try{
+    const resp = await fetch("/api/reports/build", {
+      method:"POST",
+      headers: { ...H, "Content-Type":"application/json" },
+      body: JSON.stringify({ title:"MVP Demo Report", params:{ period:"2024-Q4", meters:["meter-1"] } })
+    });
+    const data = await resp.json();
+    setTrace(data);
+    if(data.evidence_id){
+      const a = document.createElement("a");
+      a.href = `/api/evidence/${data.evidence_id}/content`;
+      a.textContent = "Download report.pdf";
+      a.target = "_blank"; a.rel = "noopener";
+      const r = el("results"); r.prepend(a); r.prepend(document.createElement("br"));
+    }
+  }catch(e){ setTrace(String(e)); }
+}
+
+async function search(){
+  const q = el("q").value || "";
+  try{
+    const resp = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { headers:H });
+    const data = await resp.json();
+    setTrace(data);
+    const host = el("results");
+    host.innerHTML = (data.items || []).map(it => {
+      if(it.kind === "evidence"){
+        return `<div class="item">📎 <strong>Evidence</strong> — ${it.title || it.filename || it.id}
+          ${it.id ? ` <a href="/api/evidence/${it.id}/content" target="_blank">download</a>` : ""}</div>`;
+      }
+      return `<div class="item">🔎 ${it.kind || "result"} — ${it.title || it.text || ""}</div>`;
+    }).join("");
+  }catch(e){
+    setTrace(String(e));
+  }
+}
+</script>
+</body>
+</html>

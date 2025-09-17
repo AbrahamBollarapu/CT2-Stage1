@@ -1,0 +1,49 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: ct2-traefik
+    restart: unless-stopped
+    networks: [ct2-net]
+    ports: ["80:80", "8080:8080"]
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock:ro"]
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --api.dashboard=true
+      - --api.insecure=true
+
+  suppliers-service:
+    networks: [ct2-net]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "ct2-net"
+
+      # keep container healthy endpoint internal (disable old /health router)
+      traefik.http.routers.suppliers-health.rule: "Path(`/__disabled_health__`)"
+      traefik.http.routers.suppliers-health.entrypoints: "web"
+      traefik.http.routers.suppliers-health.service: "suppliers-svc"
+      traefik.http.routers.suppliers-health.priority: "1"
+
+      # disable the generic catch-all /api router from the base file
+      traefik.http.routers.suppliers-api.rule: "PathPrefix(`/__disabled__`)"
+      traefik.http.routers.suppliers-api.entrypoints: "web"
+      traefik.http.routers.suppliers-api.service: "suppliers-svc"
+      traefik.http.routers.suppliers-api.priority: "1"
+
+      # add the specific, high-priority routers we actually want
+      traefik.http.routers.suppliers.rule: "Host(`localhost`) && PathPrefix(`/api/suppliers`)"
+      traefik.http.routers.suppliers.entrypoints: "web"
+      traefik.http.routers.suppliers.service: "suppliers-svc"
+      traefik.http.routers.suppliers.priority: "26000"
+
+      traefik.http.routers.assessments.rule: "Host(`localhost`) && PathPrefix(`/api/assessments`)"
+      traefik.http.routers.assessments.entrypoints: "web"
+      traefik.http.routers.assessments.service: "suppliers-svc"
+      traefik.http.routers.assessments.priority: "26000"
+
+      traefik.http.services.suppliers-svc.loadbalancer.server.port: "8000"
+
+networks:
+  ct2-net:
+    external: true

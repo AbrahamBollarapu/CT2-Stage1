@@ -1,0 +1,60 @@
+﻿# docker-compose.fix.yml
+services:
+  ingestion-service:
+    build:
+      context: ./apps/backend/services/ingestion-service
+    image: ct2/ingestion-service
+    environment:
+      - PORT=8000
+      - ARTIFACT_DIR=/var/lib/ct2/artifacts
+    volumes:
+      - ct2-artifacts:/var/lib/ct2/artifacts
+    networks:
+      - ct2-net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2_ct2-net
+      - traefik.http.routers.ingest.rule=PathPrefix(`/api/ingest`) || PathPrefix(`/api/ingestion`)
+      - traefik.http.routers.ingest.entrypoints=web
+      - traefik.http.services.ingest.loadbalancer.server.port=8000
+
+  evidence-store:
+    build:
+      context: ./apps/backend/services/evidence-store
+    image: ct2/evidence-store
+    environment:
+      - PORT=8000
+      - ARTIFACT_DIR=/var/lib/ct2/artifacts
+    volumes:
+      - ct2-artifacts:/var/lib/ct2/artifacts
+    networks:
+      - ct2-net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2_ct2-net
+      - traefik.http.routers.evidence.rule=PathPrefix(`/api/evidence`)
+      - traefik.http.routers.evidence.entrypoints=web
+      - traefik.http.services.evidence.loadbalancer.server.port=8000
+
+  time-series-service:
+    build:
+      context: ./apps/backend/services/time-series-service
+    image: ct2/time-series-service
+    environment:
+      - PORT=8000
+    networks:
+      - ct2-net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2_ct2-net
+      - traefik.http.routers.timeseries.rule=PathPrefix(`/api/time-series`)
+      - traefik.http.routers.timeseries.entrypoints=web
+      - traefik.http.services.timeseries.loadbalancer.server.port=8000
+
+volumes:
+  ct2-artifacts:
+
+networks:
+  ct2-net:
+    external: true
+    name: ct2_ct2-net

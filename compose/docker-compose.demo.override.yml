@@ -1,0 +1,34 @@
+services:
+  esg-service:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)
+      - traefik.http.routers.esg.entrypoints=web
+      - traefik.http.routers.esg.priority=10
+      - traefik.http.routers.esg.service=esg
+      - traefik.http.services.esg.loadbalancer.server.port=8000
+      - traefik.http.middlewares.esg-strip.stripprefix.prefixes=/api/esg
+      - traefik.http.routers.esg.middlewares=esg-strip
+
+  data-quality-service:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.dq.rule=PathPrefix(`/api/data-quality`)
+      - traefik.http.routers.dq.entrypoints=web
+      - traefik.http.routers.dq.priority=10
+      - traefik.http.routers.dq.service=dq
+      - traefik.http.services.dq.loadbalancer.server.port=8000
+      - traefik.http.middlewares.dq-strip.stripprefix.prefixes=/api/data-quality
+      - traefik.http.routers.dq.middlewares=dq-strip
+
+  report-compiler-service:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
+      - traefik.http.routers.reports.entrypoints=web
+      - traefik.http.routers.reports.priority=10
+      - traefik.http.routers.reports.service=repsvc
+      - traefik.http.services.repsvc.loadbalancer.server.port=8000

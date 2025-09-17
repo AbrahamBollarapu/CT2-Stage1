@@ -1,0 +1,60 @@
+﻿services:
+  ingestion-service:
+    build:
+      context: "D:/CT2/apps/backend/services/ingestion-service"
+      dockerfile: "Dockerfile"
+
+  evidence-store:
+    build:
+      context: "D:/CT2/apps/backend/services/evidence-store"
+      dockerfile: "Dockerfile"
+
+  time-series-service:
+    build:
+      context: "D:/CT2/apps/backend/services/time-series-service"
+      dockerfile: "Dockerfile"
+
+  emission-factors-service:
+    build:
+      context: "D:/CT2/apps/backend/services/emission-factors-service"
+      dockerfile: "Dockerfile"
+
+  esg-service:
+    build:
+      context: "D:/CT2/apps/backend/services/esg-service"
+      dockerfile: "Dockerfile"
+
+  data-quality-service:
+    build:
+      context: "D:/CT2/apps/backend/services/data-quality-service"
+      dockerfile: "Dockerfile"
+
+  kpi-calculation-service:
+    build:
+      context: "D:/CT2/apps/backend/services/kpi-calculation-service"
+      dockerfile: "Dockerfile"
+
+  jobs-service:
+    build:
+      context: "D:/CT2/apps/backend/services/jobs-service"
+      dockerfile: "Dockerfile"
+
+  search-index-service:
+    build:
+      context: "D:/CT2/apps/backend/services/search-index-service"
+      dockerfile: "Dockerfile"
+
+  report-compiler-service:
+    build:
+      context: "D:/CT2/apps/backend/services/report-compiler-service"
+      dockerfile: "Dockerfile"
+
+  xbrl-mapping-service:
+    build:
+      context: "D:/CT2/apps/backend/services/xbrl-mapping-service"
+      dockerfile: "Dockerfile"
+
+  dashboards-service:
+    build:
+      context: "D:/CT2/apps/backend/services/dashboards-service"
+      dockerfile: "Dockerfile"

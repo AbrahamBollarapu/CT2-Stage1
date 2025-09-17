@@ -1,38 +1,50 @@
 import express from "express";
-import { requestIdMiddleware } from "./request-id";
-import { httpLogger } from "./http-logger";
-import { registerOpenApi } from "./openapi";
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "25mb" }));
 
-// middlewares (order matters)
-app.use(requestIdMiddleware);
-app.use(httpLogger);
+const PORT = parseInt(process.env.PORT || "8000", 10);
+// Where ingestion forwards uploaded files to be stored:
+const EVIDENCE_BASE_URL =
+  process.env.EVIDENCE_BASE_URL || "http://evidence-store:8000";
 
-// opportunistically mount any existing routes without breaking compile
-try {
-  // @ts-ignore
-  const mod = require("./routes");
-  if (mod?.registerRoutes) { mod.registerRoutes(app); }
-  else if (mod?.router)    { app.use(mod.router); }
-} catch (_) {}
-
-try {
-  // @ts-ignore
-  const api = require("./api");
-  if (typeof api === "function") { app.use(api); }
-  else if (api?.default && typeof api.default === "function") { app.use(api.default); }
-  else if (api?.router) { app.use(api.router); }
-} catch (_) {}
-
-// health + ready
 app.get("/health", (_req, res) => res.json({ ok: true }));
-app.get("/ready",  (_req, res) => res.json({ ok: true }));
 
-registerOpenApi(app, "ingestion-service");
+// Traefik strips /api/ingest → our route is just /documents
+app.post("/documents", async (req, res) => {
+  try {
+    const orgId = (req.header("X-Org-Id") || "default").toString();
+    const { filename, contentType, dataBase64 } = req.body || {};
+    if (!filename || !contentType || !dataBase64) {
+      return res
+        .status(400)
+        .json({ ok: false, error: "filename, contentType, dataBase64 required" });
+    }
 
-const port = Number(process.env.PORT || 8000);
-app.listen(port, () => console.log("[ingestion-service] listening on", port));
+    // Forward to evidence-store
+    const resp = await fetch(`${EVIDENCE_BASE_URL}/documents`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Org-Id": orgId,
+      },
+      body: JSON.stringify({ filename, contentType, dataBase64 }),
+    });
 
-export default app;
+    if (!resp.ok) {
+      const details = await resp.text().catch(() => "");
+      return res
+        .status(502)
+        .json({ ok: false, error: "evidence-store error", details });
+    }
+
+    const data = (await resp.json()) as { evidence_id: string };
+    return res.json({ ok: true, evidence_id: data.evidence_id });
+  } catch (err: any) {
+    return res.status(500).json({ ok: false, error: err?.message || "error" });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`ingestion-service listening on :${PORT}`);
+});

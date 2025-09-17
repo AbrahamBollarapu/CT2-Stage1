@@ -1,0 +1,16 @@
+services:
+  esg-service:
+    labels:
+      - traefik.http.routers.esg.middlewares=
+  data-quality-service:
+    labels:
+      - traefik.http.routers.data-quality.middlewares=
+  kpi-calculation-service:
+    labels:
+      - traefik.http.routers.kpi.middlewares=
+  report-compiler-service:
+    labels:
+      - traefik.http.routers.reports.middlewares=
+  xbrl-mapping-service:
+    labels:
+      - traefik.http.routers.xbrl.middlewares=

@@ -1,15 +1,25 @@
+﻿// server.mjs
 import express from "express";
+
 const app = express();
-const PORT = parseInt(process.env.PORT || "8000", 10);
-const NAME = process.env.SERVICE_NAME || "service";
-const PREFIX = process.env.SERVICE_PREFIX || "/api/unknown";
+app.use(express.json());
 
-const r = express.Router();
-r.get("/health", (_req,res) => res.json({ ok:true, service: NAME }));
+const PORT = process.env.PORT || 8000;
 
-app.get("/health", (_req,res) => res.json({ ok:true, service: NAME, root:true }));
-app.use(PREFIX, r);
+app.get("/health", (_req, res) => res.json({ ok: true, ready: true }));
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`[${NAME}] listening on 0.0.0.0:${PORT} (prefix=${PREFIX})`);
+// Minimal lookup stub consumed by the compiler
+app.post("/api/xmap/lookup", (req, res) => {
+  // optionally read fields from req.body to vary values
+  res.json({
+    ok: true,
+    tags: {
+      companyName: "TrustStrip Inc.",
+      periodLabel: "Q4 2024",
+      totalEmissions: "12,345 tCO2e",
+      reviewer: "Demo Bot",
+    },
+  });
 });
+
+app.listen(PORT, () => console.log(`xmap listening on :${PORT}`));

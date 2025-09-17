@@ -1,0 +1,14 @@
+{
+  "name": "suppliers-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Suppliers & Assessments API for CogTechAI MVP (S2)",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "fastify": "^4.28.1",
+    "pg": "^8.12.0"
+  }
+}

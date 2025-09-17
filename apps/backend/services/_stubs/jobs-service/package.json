@@ -1,0 +1,7 @@
+{
+  "name": "jobs-service",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": { "start:prod": "node server.js" },
+  "dependencies": { "express": "^4.19.2", "nanoid": "^5.0.7" }
+}

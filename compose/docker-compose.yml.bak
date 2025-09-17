@@ -1,0 +1,172 @@
+# app services + builds (no ports; Traefik is the gateway)
+services:
+  esg-service:
+    build:
+      context: ../apps/backend/services/esg-service
+      dockerfile: Dockerfile
+    image: ct2/esg-service
+    environment:
+      SERVICE_NAME: esg-service
+      SERVICE_PREFIX: /api/esg
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  report-compiler-service:
+    build:
+      context: ../apps/backend/services/report-compiler-service
+      dockerfile: Dockerfile
+    image: ct2/report-compiler-service
+    environment:
+      SERVICE_NAME: report-compiler-service
+      SERVICE_PREFIX: /api/reports
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  ingestion-service:
+    build:
+      context: ../apps/backend/services/ingestion-service
+      dockerfile: Dockerfile
+    image: ct2/ingestion-service
+    environment:
+      SERVICE_NAME: ingestion-service
+      SERVICE_PREFIX: /api/ingest
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  evidence-store:
+    build:
+      context: ../apps/backend/services/evidence-store
+      dockerfile: Dockerfile
+    image: ct2/evidence-store
+    environment:
+      SERVICE_NAME: evidence-store
+      SERVICE_PREFIX: /api/evidence
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  time-series-service:
+    build:
+      context: ../apps/backend/services/time-series-service
+      dockerfile: Dockerfile
+    image: ct2/time-series-service
+    environment:
+      SERVICE_NAME: time-series-service
+      SERVICE_PREFIX: /api/timeseries
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  emission-factors-service:
+    build:
+      context: ../apps/backend/services/emission-factors-service
+      dockerfile: Dockerfile
+    image: ct2/emission-factors-service
+    environment:
+      SERVICE_NAME: emission-factors-service
+      SERVICE_PREFIX: /api/factors
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  data-quality-service:
+    build:
+      context: ../apps/backend/services/data-quality-service
+      dockerfile: Dockerfile
+    image: ct2/data-quality-service
+    environment:
+      SERVICE_NAME: data-quality-service
+      SERVICE_PREFIX: /api/data-quality
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  kpi-calculation-service:
+    build:
+      context: ../apps/backend/services/kpi-calculation-service
+      dockerfile: Dockerfile
+    image: ct2/kpi-calculation-service
+    environment:
+      SERVICE_NAME: kpi-calculation-service
+      SERVICE_PREFIX: /api/kpi
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  xbrl-mapping-service:
+    build:
+      context: ../apps/backend/services/xbrl-mapping-service
+      dockerfile: Dockerfile
+    image: ct2/xbrl-mapping-service
+    environment:
+      SERVICE_NAME: xbrl-mapping-service
+      SERVICE_PREFIX: /api/xbrl
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  dashboards-service:
+    build:
+      context: ../apps/backend/services/dashboards-service
+      dockerfile: Dockerfile
+    image: ct2/dashboards-service
+    environment:
+      SERVICE_NAME: dashboards-service
+      SERVICE_PREFIX: /api/dash
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  search-index-service:
+    build:
+      context: ../apps/backend/services/search-index-service
+      dockerfile: Dockerfile
+    image: ct2/search-index-service
+    environment:
+      SERVICE_NAME: search-index-service
+      SERVICE_PREFIX: /api/search
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+  jobs-service:
+    build:
+      context: ../apps/backend/services/jobs-service
+      dockerfile: Dockerfile
+    image: ct2/jobs-service
+    environment:
+      SERVICE_NAME: jobs-service
+      SERVICE_PREFIX: /api/jobs
+      HOST: 0.0.0.0
+      PORT: "8000"
+    command: ["npm","run","start:prod"]
+    networks: [ct2-net]
+    restart: unless-stopped
+
+networks:
+  ct2-net: {}
