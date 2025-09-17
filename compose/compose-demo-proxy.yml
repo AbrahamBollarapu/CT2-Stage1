@@ -1,0 +1,24 @@
+services:
+  time-series-service:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ts.rule=PathPrefix(`/api/time-series`)
+      - traefik.http.routers.ts.entrypoints=web
+      - traefik.http.middlewares.ts-strip.stripprefix.prefixes=/api/time-series
+      - traefik.http.routers.ts.middlewares=ts-strip
+      - traefik.http.services.ts.loadbalancer.server.port=8000
+
+  traefik:
+    image: traefik:v3.0
+    container_name: ct2-demo-traefik
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=ct2-demo_default
+      - --entrypoints.web.address=:8081
+      - --api.insecure=true
+    ports:
+      - "8081:8081"
+      - "8091:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro

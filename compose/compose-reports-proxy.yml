@@ -1,0 +1,24 @@
+﻿services:
+  report-compiler-service:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.reports.rule=PathPrefix(/api/reports)
+      - traefik.http.routers.reports.entrypoints=web
+      - traefik.http.middlewares.reports-strip.stripprefix.prefixes=/api/reports
+      - traefik.http.routers.reports.middlewares=reports-strip
+      - traefik.http.services.reports.loadbalancer.server.port=8000
+
+  traefik:
+    image: traefik:v3.0
+    container_name: ct2rpt-traefik
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=ct2rpt_default
+      - --entrypoints.web.address=:8081
+      - --api.insecure=true
+    ports:
+      - "8081:8081"   # public HTTP for your APIs
+      - "8090:8080"   # optional Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
