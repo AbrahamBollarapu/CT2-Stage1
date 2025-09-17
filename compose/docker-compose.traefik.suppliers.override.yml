@@ -1,0 +1,25 @@
+services:
+  suppliers-service:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_ct2-net
+
+      # Suppliers API
+      - traefik.http.routers.suppliers.rule=Host(`localhost`) && PathPrefix(`/api/suppliers`)
+      - traefik.http.routers.suppliers.entrypoints=web
+      - traefik.http.routers.suppliers.priority=26000
+      - traefik.http.routers.suppliers.service=suppliers-svc
+      - traefik.http.services.suppliers-svc.loadbalancer.server.port=8000
+
+      # If this container also serves /api/assessments:
+      - traefik.http.routers.assessments.rule=Host(`localhost`) && PathPrefix(`/api/assessments`)
+      - traefik.http.routers.assessments.entrypoints=web
+      - traefik.http.routers.assessments.priority=26000
+      - traefik.http.routers.assessments.service=suppliers-assess-svc
+      - traefik.http.services.suppliers-assess-svc.loadbalancer.server.port=8000
+
+      # Neutralize any broad legacy routers that might hijack requests
+      - traefik.http.routers.suppliers-api.rule=PathPrefix(`/__disabled__`)
+      - traefik.http.routers.suppliers-api.priority=1
+      - traefik.http.routers.suppliers-health.rule=Path(`/__disabled_health__`)
+      - traefik.http.routers.suppliers-health.priority=1

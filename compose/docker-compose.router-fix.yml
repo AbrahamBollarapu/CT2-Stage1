@@ -1,27 +1,28 @@
 services:
-  esg-service:
-    labels:
-      traefik.enable: "true"
-      traefik.docker.network: ct2-net
-      traefik.http.routers.esg.rule: PathPrefix(`/api/esg`)
-      traefik.http.routers.esg.entrypoints: web
-      traefik.http.services.esg.loadbalancer.server.port: "8000"
-      traefik.http.routers.esg.middlewares: ""  # ensure NO strip
+  ingestion-service:
+    build:
+      context: ./apps/backend/services/ingestion-service
+      dockerfile: Dockerfile
+    image: ct2/ingestion-service
+    restart: unless-stopped
+    networks: [ct2-net]
 
-  emission-factors-service:
-    labels:
-      traefik.enable: "true"
-      traefik.docker.network: ct2-net
-      traefik.http.routers.factors.rule: PathPrefix(`/api/factors`)
-      traefik.http.routers.factors.entrypoints: web
-      traefik.http.services.factors.loadbalancer.server.port: "8000"
-      traefik.http.routers.factors.middlewares: ""  # ensure NO strip
+  evidence-store:
+    build:
+      context: ./apps/backend/services/evidence-store
+      dockerfile: Dockerfile
+    image: ct2/evidence-store
+    restart: unless-stopped
+    networks: [ct2-net]
 
   time-series-service:
-    labels:
-      traefik.enable: "true"
-      traefik.docker.network: ct2-net
-      traefik.http.routers.timeseries.rule: PathPrefix(`/api/timeseries`)
-      traefik.http.routers.timeseries.entrypoints: web
-      traefik.http.services.timeseries.loadbalancer.server.port: "8000"
-      traefik.http.routers.timeseries.middlewares: ""  # ensure NO strip
+    build:
+      context: ./apps/backend/services/time-series-service
+      dockerfile: Dockerfile
+    image: ct2/time-series-service
+    restart: unless-stopped
+    networks: [ct2-net]
+
+networks:
+  ct2-net:
+    external: true

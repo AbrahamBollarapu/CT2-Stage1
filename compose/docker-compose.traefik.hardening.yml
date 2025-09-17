@@ -1,0 +1,21 @@
+﻿services:
+  traefik:
+    command:
+      # Core
+      - --api.dashboard=true
+      - --log.level=INFO
+
+      # Providers
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+
+      # EntryPoints
+      - --entryPoints.web.address=:8081
+      - --entryPoints.admin.address=:8090
+
+      # Hardening / ops
+      - --accesslog=true
+      - --accesslog.format=json
+      - --entryPoints.web.forwardedHeaders.insecure=true

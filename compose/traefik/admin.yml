@@ -1,0 +1,6 @@
+http:
+  routers:
+    traefik-admin:
+      entryPoints: ["admin"]
+      service: api@internal
+      rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"

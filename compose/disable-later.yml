@@ -1,0 +1,4 @@
+# Neutralizes the legacy search-index-service so you don't get a duplicate /api/search router
+services:
+  search-index-service:
+    profiles: ["never"]   # will not start under your day1/day2 profiles

@@ -1,0 +1,3 @@
+﻿{ "name":"dashboards-service","type":"module",
+  "scripts":{ "start:prod":"node server.mjs" },
+  "dependencies":{ "express":"^4.19.2" } }

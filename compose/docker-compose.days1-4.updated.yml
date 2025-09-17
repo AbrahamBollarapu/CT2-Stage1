@@ -1,0 +1,319 @@
+services:
+  # =======================
+  # Day 1 — Core services
+  # =======================
+  ingestion-service:
+    profiles: ["day1","s1"]
+    build:
+      context: .
+      dockerfile: services/ingestion-service/Dockerfile
+    environment:
+      PORT: 8000
+      EVIDENCE_DIR: /evidence
+      EVIDENCE_API_URL: http://evidence-store:8000/api/evidence
+    volumes:
+      - evidence_vol:/evidence
+    depends_on:
+      evidence-store:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ingest.rule=PathPrefix(`/api/ingest`)"
+      - "traefik.http.services.ingest.loadbalancer.server.port=8000"
+
+  evidence-db:
+    profiles: ["day1","s1"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: evidence
+      POSTGRES_PASSWORD: evidence
+      POSTGRES_DB: evidence
+    volumes:
+      - evidence_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evidence -d evidence || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  evidence-store:
+    profiles: ["day1","s1"]
+    build:
+      context: .
+      dockerfile: services/evidence-store/Dockerfile
+    environment:
+      PORT: 8000
+      DATABASE_URL: postgresql+psycopg://evidence:evidence@evidence-db:5432/evidence
+      EVIDENCE_DIR: /evidence
+    volumes:
+      - evidence_vol:/evidence
+    depends_on:
+      evidence-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/evidence/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.evidence.rule=PathPrefix(`/api/evidence`)"
+      - "traefik.http.services.evidence.loadbalancer.server.port=8000"
+
+  timeseries-db:
+    profiles: ["day1","s1"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: timeseries
+      POSTGRES_PASSWORD: timeseries
+      POSTGRES_DB: timeseries
+    volumes:
+      - timeseries_db_data:/var/lib/postgresql/data
+      # NEW: run SQL files on first init (e.g., 002_uniq_points.sql)
+      - ./compose/sql/timeseries:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timeseries -d timeseries || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  time-series-service:
+    profiles: ["day1","s1"]
+    build:
+      context: .
+      dockerfile: services/time-series-service/Dockerfile
+    environment:
+      PORT: 8000
+      DATABASE_URL: postgresql+psycopg://timeseries:timeseries@timeseries-db:5432/timeseries
+    depends_on:
+      timeseries-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/time-series/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.timeseries.rule=PathPrefix(`/api/time-series`)"
+      - "traefik.http.services.timeseries.loadbalancer.server.port=8000"
+
+  # =======================
+  # Day 2 — ESG / DQ / KPI / Jobs / Search
+  # =======================
+  emission-factors-service:
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/emission-factors-service/Dockerfile
+    environment:
+      PORT: 8000
+      PREFIX: /api/emission-factors    # <— add this line
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.emf.rule=PathPrefix(`/api/emission-factors`)"
+      - "traefik.http.services.emf.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.emf-strip.stripprefix.prefixes=/api/emission-factors"
+      - "traefik.http.routers.emf.middlewares=emf-strip@docker"
+
+
+      healthcheck:
+        test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+        interval: 10s
+        timeout: 3s
+        retries: 5
+  esg-service:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=ct2-net"
+
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/esg-service/Dockerfile
+    environment:
+      PORT: 8000
+      TS_API: http://time-series-service:8000
+      EF_API: http://emission-factors-service:8000
+    depends_on:
+      time-series-service:
+        condition: service_healthy
+      emission-factors-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/esg/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)"
+      - "traefik.http.services.esg.loadbalancer.server.port=8000"
+
+  data-quality-service:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=ct2-net"
+
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/data-quality-service/Dockerfile
+    environment:
+      PORT: 8000
+      TS_API: http://time-series-service:8000
+    depends_on:
+      time-series-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/data-quality/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dq.rule=PathPrefix(`/api/data-quality`)"
+      - "traefik.http.services.dq.loadbalancer.server.port=8000"
+
+  kpi-calculation-service:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=ct2-net"
+
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/kpi-calculation-service/Dockerfile
+    environment:
+      PORT: 8000
+      TS_API: http://time-series-service:8000
+    depends_on:
+      time-series-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/kpi/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kpi.rule=PathPrefix(`/api/kpi`)"
+      - "traefik.http.services.kpi.loadbalancer.server.port=8000"
+
+  jobs-service:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=ct2-net"
+
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/jobs-service/Dockerfile
+    environment:
+      PORT: 8000
+      ESG_API: http://esg-service:8000
+      DQ_API: http://data-quality-service:8000
+      KPI_API: http://kpi-calculation-service:8000
+    depends_on:
+      esg-service:
+        condition: service_healthy
+      data-quality-service:
+        condition: service_healthy
+      kpi-calculation-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/jobs/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jobs.rule=PathPrefix(`/api/jobs`)"
+      - "traefik.http.services.jobs.loadbalancer.server.port=8000"
+
+  search-index-service:
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/search-index-service/Dockerfile
+    environment:
+      PORT: 8000
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/search/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.search.rule=PathPrefix(`/api/search`)"
+      - "traefik.http.services.search.loadbalancer.server.port=8000"
+
+  # =======================
+  # Day 3 — Reports / XBRL
+  # =======================
+  report-compiler-service:
+    profiles: ["day3","s1"]
+    build:
+      context: .
+      dockerfile: services/report-compiler-service/Dockerfile
+    environment:
+      PORT: 8000
+      ESG_API: http://esg-service:8000
+      DQ_API: http://data-quality-service:8000
+      KPI_API: http://kpi-calculation-service:8000
+      REPORT_DIR: /reports
+    volumes:
+      - reports_vol:/reports
+    depends_on:
+      esg-service:
+        condition: service_healthy
+      data-quality-service:
+        condition: service_healthy
+      kpi-calculation-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/reports/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)"
+      - "traefik.http.services.reports.loadbalancer.server.port=8000"
+
+  xbrl-mapping-service:
+    profiles: ["day3","s1"]
+    build:
+      context: .
+      dockerfile: services/xbrl-mapping-service/Dockerfile
+    environment:
+      PORT: 8000
+      REPORT_DIR: /reports
+    volumes:
+      - reports_vol:/reports
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/xbrl/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.xbrl.rule=PathPrefix(`/api/xbrl`)"
+      - "traefik.http.services.xbrl.loadbalancer.server.port=8000"
+
+volumes:
+  evidence_vol:
+  reports_vol:
+  evidence_db_data:
+  timeseries_db_data:

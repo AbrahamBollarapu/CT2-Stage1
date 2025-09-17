@@ -1,0 +1,1 @@
+﻿<PASTE THE JS ABOVE>

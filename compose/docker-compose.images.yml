@@ -1,0 +1,19 @@
+services:
+  emission-factors-service:   { image: ct2-emission-factors-service }
+  esg-service:                { image: ct2-esg-service }
+  data-quality-service:       { image: ct2-data-quality-service }
+  kpi-calculation-service:    { image: ct2-kpi-calculation-service }
+  time-series-service:        { image: ct2-time-series-service }
+  ingestion-service:          { image: ct2-ingestion-service }
+  evidence-store:             { image: ct2-evidence-store }
+  search-index-service:       { image: ct2-search-index-service }
+  report-compiler-service:    { image: ct2-report-compiler-service }
+  xbrl-mapping-service:       { image: ct2-xbrl-mapping-service }
+  dashboards-service:         { image: ct2-dashboards-service }
+  jobs-service:               { image: ct2-jobs-service }
+  suppliers-service:          { image: ct2-suppliers-service }
+
+  # Infra (leave as-is if already defined elsewhere; adding here is harmless)
+  traefik:                    { image: traefik:v2.10 }
+  evidence-db:                { image: postgres:16-alpine }
+  timeseries-db:              { image: postgres:16-alpine }

@@ -1,29 +1,45 @@
-import express from "express"; import bodyParser from "body-parser";
-const app = express(); app.use(bodyParser.json({ limit: "2mb" }));
-const PORT=process.env.PORT||8000, HOST=process.env.HOST||"0.0.0.0";
-const PREFIX=process.env.SERVICE_PREFIX||"/api/kpi";
-const GATEWAY=process.env.GATEWAY_URL||"http://traefik:8081";
-let LAST={ at:null, kpis:[] };
+// /app/server.mjs — kpi-calculation-service (pure Node)
+import { createServer } from "node:http";
+import { URL } from "node:url";
 
-app.get(PREFIX+"/health", (_req,res)=>res.json({ok:true,service:"kpi-calculation-service"}));
+const PORT = Number(process.env.PORT || 8000);
+const PREFIX = (process.env.PREFIX || "/api/kpi").replace(/\/+$/, "");
 
-async function getESG(){ const r=await fetch(`${GATEWAY}/api/esg/metrics`); if(!r.ok) throw new Error(`esg metrics ${r.status}`); return r.json(); }
-async function getTS(l=10000){ const r=await fetch(`${GATEWAY}/api/timeseries/query?limit=${l}`); if(!r.ok) throw new Error(`timeseries ${r.status}`); const j=await r.json(); return Array.isArray(j)?j:(j.value||[]); }
-const pick=(m,key)=>{ const x=(m.metrics||m).find(y=>y.metric===key); return x?Number(x.value):0; };
+function sendJSON(res, code, obj) {
+  const body = Buffer.from(JSON.stringify(obj));
+  res.writeHead(code, {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": String(body.length),
+  });
+  res.end(body);
+}
 
-app.post(PREFIX+"/compute-demo", async (_req,res)=>{
-  try{
-    const esg=await getESG(); const pts=await getTS(10000);
-    const scope1=pick(esg,"scope1_co2e_demo"), scope2=pick(esg,"scope2_co2e_demo");
-    const total=scope1+scope2;
-    const grid=pts.filter(p=>p.metric==="grid_kwh").map(p=>Number(p.value));
-    const gridAvg=grid.length ? grid.reduce((a,b)=>a+b,0)/grid.length : 0;
-    LAST={ at:new Date().toISOString(), kpis:[
-      { kpi:"total_co2e_demo", value: total, unit:"co2e" },
-      { kpi:"grid_kwh_avg_demo", value: Number(gridAvg.toFixed(3)), unit:"kWh" }
-    ]};
-    res.json({ ok:true, ...LAST });
-  }catch(e){ res.status(500).json({ok:false,error:String(e.message||e)}); }
+const server = createServer((req, res) => {
+  const url = new URL(req.url, "http://localhost");
+  const p = url.pathname;
+
+  // Health (root + namespaced)
+  if (req.method === "GET" && (p === "/health" || p === `${PREFIX}/health`)) {
+    return sendJSON(res, 200, { ok: true, service: "kpi" });
+  }
+
+  // GET /energy (root + namespaced) — demo stub returning 200
+  if (req.method === "GET" && (p === "/energy" || p === `${PREFIX}/energy`)) {
+    const org_id = url.searchParams.get("org_id") || "demo";
+    const meter  = url.searchParams.get("meter")  || "grid_kwh";
+    const unit   = url.searchParams.get("unit")   || "kWh";
+    const from   = url.searchParams.get("from")   || "";
+    const to     = url.searchParams.get("to")     || "";
+    return sendJSON(res, 200, {
+      ok: true,
+      org_id, meter, unit, from, to,
+      totals: { energy_kWh: 239.3 } // just a stub value for demo
+    });
+  }
+
+  return sendJSON(res, 404, { ok:false, error:"not_found", path:p });
 });
-app.get(PREFIX+"/metrics", (_req,res)=>res.json(LAST));
-app.listen(PORT,HOST,()=>console.log(`[kpi-calculation-service] listening on ${HOST}:${PORT} (prefix=${PREFIX})`));
+
+server.listen(PORT, "0.0.0.0", () =>
+  console.log(`[kpi] listening :${PORT} (PREFIX=${PREFIX})`)
+);

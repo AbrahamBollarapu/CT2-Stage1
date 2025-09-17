@@ -1,18 +1,14 @@
-import { registerOpenApi } from './openapi';
-import { httpLogger } from './http-logger';
-import { requestIdMiddleware } from './request-id';
-import { registerJobsApi } from './jobs-api';
-import { registerReady } from './ready';
 import express from "express";
-const app = express(); app.use(express.json());
-app.use(requestIdMiddleware);
-app.use(httpLogger);
-registerOpenApi(app);
-registerJobsApi(app);
-registerReady(app);
-const PORT = Number(process.env.PORT || 8000);
-app.get("/health", (_req, res) => res.json({ status: "ok", service: "jobs-service", port: PORT }));
-app.get("/status/:id", (req, res) => res.json({ ok: true, id: req.params.id, state: "ready" }));
-app.listen(PORT, "0.0.0.0", () => console.log(`[jobs-service] ${PORT}`));
 
+const app = express();
+app.use(express.json());
 
+app.get("/health", (_req, res) => res.json({ ok: true, service: "jobs" }));
+
+app.post("/api/jobs/run/demo", async (_req, res) => {
+  // For demo: pretend to orchestrate the happy path
+  res.json({ ok: true, job: "demo", queuedAt: new Date().toISOString() });
+});
+
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => console.log(`jobs-service on :${PORT}`));

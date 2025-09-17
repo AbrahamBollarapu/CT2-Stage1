@@ -1,0 +1,11 @@
+# docker-compose.xbrl-override.yml
+services:
+  xbrl-mapping-service:
+    environment:
+      PREFIX: /api/xbrl
+      REPORTS_PREFIX: /api/reports
+      PORT: "8000"
+    # run the lightweight stub directly
+    command: ["node", "/app/server.mjs"]
+    # allow docker cp hotpatching
+    read_only: false

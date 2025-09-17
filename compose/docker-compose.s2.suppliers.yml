@@ -1,0 +1,53 @@
+services:
+  suppliers-service:
+    profiles: ["day2","s1"]
+    build:
+      context: ./services/suppliers-service
+      dockerfile: Dockerfile
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8000"
+      SERVICE_PREFIX: /api
+      API_KEY: ct2-dev-key
+      PGHOST: evidence-db
+      PGUSER: evidence
+      PGPASSWORD: evidence
+      PGDATABASE: evidence
+      PGPORT: "5432"
+    depends_on:
+      evidence-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL","wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+    labels:
+      - "traefik.enable=true"
+
+      # Router (unique name + higher priority, matches suppliers/assessments/_routes)
+      - "traefik.http.routers.suppliers-router.entrypoints=web"
+      - "traefik.http.routers.suppliers-router.rule=PathPrefix(`/api/suppliers`) || PathPrefix(`/api/assessments`) || PathPrefix(`/api/_routes`)"
+      - "traefik.http.routers.suppliers-router.priority=100"
+
+      # Point router -> service name below
+      - "traefik.http.routers.suppliers-router.service=suppliers-svc"
+
+      # Service definition (port inside the container)
+      - "traefik.http.services.suppliers-svc.loadbalancer.server.port=8000"
+
+      # Do NOT strip /api
+      - "traefik.http.routers.suppliers-router.middlewares="
+
+      # Tell Traefik which network to use
+      - "traefik.docker.network=ct2-net"
+
+    networks:
+      - default     # talks to evidence-db here
+      - ct2-net     # Traefik reaches the container here
+
+# If ct2-net isn’t already declared elsewhere, uncomment below:
+# networks:
+#   ct2-net:
+#     external: true

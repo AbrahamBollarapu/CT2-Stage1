@@ -1,0 +1,8 @@
+services:
+  emission-factors-service:
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health || curl -fsS http://127.0.0.1:8000/health || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 5s

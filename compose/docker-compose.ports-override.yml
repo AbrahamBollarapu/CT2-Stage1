@@ -1,0 +1,6 @@
+# docker-compose.ports-override.yml
+services:
+  traefik:
+    ports:
+      - "8085:80"     # app traffic (was 8081)
+      - "8095:8080"   # dashboard (was 8090)

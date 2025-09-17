@@ -1,0 +1,23 @@
+# docker-compose.traefik.force.yml
+services:
+  traefik:
+    command:
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=ct2_ct2-net
+      - --entrypoints.web.address=:80
+      - --entrypoints.admin.address=:8080
+    networks:
+      - ct2-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "8081:80"    # app traffic
+      - "8090:8080"  # admin/dashboard
+
+networks:
+  ct2-net:
+    external: true
+    name: ct2_ct2-net

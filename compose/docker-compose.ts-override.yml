@@ -1,0 +1,27 @@
+# docker-compose.ts-override.yml
+version: "3.9"
+
+services:
+  time-series-service:
+    environment:
+      PORT: "8000"
+      PREFIX: "/api/time-series"
+      AUTH_MODE: "dev"
+      DEV_KEY: "ct2-dev-key"
+    labels:
+      # Ensure Traefik looks at this container on ct2-net
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+
+      # --- Single, authoritative router for TS (unique name & high priority) ---
+      - traefik.http.routers.ts-override.entrypoints=web
+      - traefik.http.routers.ts-override.rule=PathPrefix(`/api/time-series`)
+      - traefik.http.routers.ts-override.priority=2000
+      - traefik.http.routers.ts-override.service=ts-override-svc
+
+      # Service definition (target container port)
+      - traefik.http.services.ts-override-svc.loadbalancer.server.port=8000
+
+      # Strip the prefix so backend sees /health, /points, /ingest
+      - traefik.http.middlewares.ts-override-strip.stripprefix.prefixes=/api/time-series
+      - traefik.http.routers.ts-override.middlewares=ts-override-strip@docker

@@ -1,0 +1,21 @@
+entryPoints:
+  web:
+    address: ":8081"
+    forwardedHeaders:
+      insecure: true
+  admin:
+    address: ":8090"
+
+api:
+  dashboard: true
+  insecure: false
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: "ct2_ct2-net"
+  file:
+    filename: "/etc/traefik/admin.yml"
+
+accessLog:
+  format: json

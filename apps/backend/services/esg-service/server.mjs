@@ -1,65 +1,66 @@
-﻿import express from "express";
+﻿// /app/server.mjs — esg-service (pure Node; minimal)
+import { createServer } from "node:http";
+import { URL } from "node:url";
 
-const app = express();
-const PORT = process.env.PORT || 8000;
-const PREFIX = "/api/esg";
+const PORT = Number(process.env.PORT || 8000);
+const PREFIX = (process.env.PREFIX || "/api/esg").replace(/\/+$/,"");
 
-const TS_BASE = process.env.TS_BASE || "http://time-series-service:8000";
-const FACT_BASE = process.env.FACT_BASE || "http://emission-factors-service:8000";
+// factor fallback (if EF not called)
+const DEFAULT_FACTOR = 0.82;
 
-app.use(express.json({ limit: "5mb" }));
-app.get(PREFIX + "/health", (_req, res) => res.json({ ok: true, service: "esg-service" }));
+function sendJSON(res, code, obj) {
+  const body = Buffer.from(JSON.stringify(obj));
+  res.writeHead(code, {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": String(body.length),
+  });
+  res.end(body);
+}
 
-let METRICS_CACHE = { at: null, metrics: [] };
+function parseBody(req) {
+  return new Promise((resolve,reject)=>{
+    const chunks=[]; req.on("data",(c)=>chunks.push(c));
+    req.on("end",()=>{ try{ resolve(chunks.length?JSON.parse(Buffer.concat(chunks).toString("utf8")):{}); }catch(e){ reject(e);} });
+    req.on("error",reject);
+  });
+}
 
-app.post(PREFIX + "/compute-demo", async (_req, res) => {
-  try {
-    const ptsResp = await fetch(`${TS_BASE}/api/timeseries/query?limit=10000`);
-    if (!ptsResp.ok) throw new Error(`timeseries query ${ptsResp.status}`);
-    const points = await ptsResp.json();
+const server = createServer(async (req, res) => {
+  const url = new URL(req.url, "http://localhost");
+  const p = url.pathname;
 
-    const fResp = await fetch(`${FACT_BASE}/api/factors/all`);
-    if (!fResp.ok) throw new Error(`factors all ${fResp.status}`);
-    const factors = await fResp.json();
-
-    const sum = arr => arr.reduce((a, b) => a + Number(b || 0), 0);
-    const byMetric = m => points.filter(p => p.metric === m).map(p => Number(p.value || 0));
-
-    const kwhTotal = sum(byMetric("grid_kwh"));
-    const dieselLitres = sum(byMetric("diesel_l"));
-
-    const kwhFactor   = (factors.find(f => f.activity === "electricity" && f.unit === "kWh") || {}).factor ?? 0;
-    const dieselFactor= (factors.find(f => f.activity === "diesel" && f.unit === "litre") || {}).factor ?? 0;
-
-    const scope2 = kwhTotal * kwhFactor;
-    const scope1 = dieselLitres * dieselFactor;
-
-    const metrics = [
-      { metric: "electricity_kwh_total", value: kwhTotal, unit: "kWh" },
-      { metric: "diesel_l_total",       value: dieselLitres, unit: "litre" },
-      { metric: "scope2_co2e_demo",     value: scope2, unit: "co2e" },
-      { metric: "scope1_co2e_demo",     value: scope1, unit: "co2e" },
-    ];
-    METRICS_CACHE = { at: new Date().toISOString(), metrics };
-
-    // write derived points
-    const write = [
-      { metric: "scope2_co2e_demo", ts: new Date().toISOString(), value: scope2 },
-      { metric: "scope1_co2e_demo", ts: new Date().toISOString(), value: scope1 },
-    ];
-    const w = await fetch(`${TS_BASE}/api/timeseries/points`, {
-      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(write)
-    });
-    if (!w.ok) throw new Error(`timeseries write ${w.status}`);
-
-    res.json({ ok: true, computedAt: METRICS_CACHE.at, metrics });
-  } catch (e) {
-    res.status(500).json({ error: String(e.message || e) });
+  // Health (root + namespaced)
+  if (req.method === "GET" && (p === "/health" || p === `${PREFIX}/health`)) {
+    return sendJSON(res, 200, { ok: true, service: "esg" });
   }
+
+  // POST /footprint (root + namespaced) — simple sum × factor
+  if (req.method === "POST" && (p === "/footprint" || p === `${PREFIX}/footprint`)) {
+    try {
+      const b = await parseBody(req);
+      const { org_id="demo", meter="grid_kwh", unit="kWh", from, to, points } = b || {};
+      if (!org_id || !meter || !unit) return sendJSON(res, 400, { ok:false, error:"bad_request" });
+
+      // If explicit points provided, use them; else call your time-series-service via gateway (omitted here for stub).
+      const arr = Array.isArray(points) ? points : [];
+      const energy = arr.reduce((s,p)=> s + Number(p.value||0), 0);
+      const emissions = energy * DEFAULT_FACTOR;
+
+      return sendJSON(res, 200, {
+        ok: true,
+        inputs: { org_id, meter, unit, from: from ? new Date(from) : undefined, to: to ? new Date(to) : undefined },
+        factor: { meter, unit, factor: DEFAULT_FACTOR, ef_unit:"kgCO2e/kWh", source:"static", version:"v1" },
+        totals: { energy_kWh: energy, emissions_kgCO2e: emissions },
+        points: arr.length
+      });
+    } catch(e) {
+      return sendJSON(res, 500, { ok:false, error:"esg_internal_error", details:String(e?.message||e) });
+    }
+  }
+
+  sendJSON(res, 404, { ok:false, error:"not_found", path:p });
 });
 
-app.get(PREFIX + "/metrics", (_req, res) => res.json(METRICS_CACHE));
-
-app.listen(PORT, "0.0.0.0", () =>
-  console.log(`[esg-service] listening on 0.0.0.0:${PORT} (prefix=${PREFIX})`)
+server.listen(PORT, "0.0.0.0", () =>
+  console.log(`[esg] listening :${PORT} (PREFIX=${PREFIX})`)
 );

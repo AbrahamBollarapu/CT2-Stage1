@@ -2,25 +2,18 @@
   "name": "evidence-store",
   "version": "1.0.0",
   "private": true,
-  "description": "Artifact evidence content server",
-  "license": "MIT",
-  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "start:prod": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "build": "tsc -p tsconfig.json",
+    "start:prod": "node dist/index.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "mime-types": "^2.1.35"
+    "mime": "^4.0.4"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/mime-types": "^2.1.4",
-    "@types/node": "^20.14.12",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.4.5",
+    "@types/node": "^20.11.30",
+    "@types/express": "^4.17.21"
   }
 }

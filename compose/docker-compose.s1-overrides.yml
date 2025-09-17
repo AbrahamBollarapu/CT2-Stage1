@@ -1,0 +1,26 @@
+# docker-compose.s1-overrides.yml
+services:
+  report-compiler-service:
+    # make sure PREFIX & REPORTS_DIR are set so /latest and persistence work
+    environment:
+      PREFIX: /api/reports
+      REPORTS_DIR: /data/reports
+      PORT: "8000"
+    # ensure the container filesystem is writable (so docker cp can update /app/server.mjs)
+    read_only: false
+    # persist artifacts; no code mounts here
+    volumes:
+      - reports_data:/data/reports
+
+  xbrl-mapping-service:
+    # optional: point your links at /latest so TrustStrip links are always valid
+    environment:
+      REPORTS_PREFIX: /api/reports
+      XBRL_PREFIX: /api/xbrl
+    # nothing else needed here; service already healthy
+
+volumes:
+  reports_data:
+    name: ct2_reports_data
+
+

@@ -1,49 +1,66 @@
-﻿services:
+services:
   ingestion-service:
     labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-net
-      - traefik.http.routers.ingest.rule=PathPrefix(`/api/ingest`) || PathPrefix(`/api/ingestion`)
-      - traefik.http.services.ingest.loadbalancer.server.port=8000
-
-  emission-factors-service:
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-net
-      - traefik.http.routers.factors.rule=PathPrefix(`/api/factors`) || PathPrefix(`/api/emission-factors`)
-      - traefik.http.services.factors.loadbalancer.server.port=8000
-
-  data-quality-service:
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-net
-      - traefik.http.routers.dataquality.rule=PathPrefix(`/api/data-quality`) || PathPrefix(`/api/dataquality`)
-      - traefik.http.services.dataquality.loadbalancer.server.port=8000
-
-  kpi-calculation-service:
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-net
-      - traefik.http.routers.kpi.rule=PathPrefix(`/api/kpi`)
-      - traefik.http.services.kpi.loadbalancer.server.port=8000
-
-  dashboards-service:
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-net
-      - traefik.http.routers.dash.rule=PathPrefix(`/api/dash`) || PathPrefix(`/api/dashboards`)
-      - traefik.http.services.dash.loadbalancer.server.port=8000
-
-  search-index-service:
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-net
-      - traefik.http.routers.search.rule=PathPrefix(`/api/search`) || PathPrefix(`/api/search-index`)
-      - traefik.http.services.search.loadbalancer.server.port=8000
+      - "traefik.http.routers.ingest.service=ingest-clean"
+      - "traefik.http.services.ingest-clean.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.ingest-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.ingest.middlewares=ingest-strip"
 
   jobs-service:
     labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-net
-      - traefik.http.routers.jobs.rule=PathPrefix(`/api/jobs`)
-      - traefik.http.services.jobs.loadbalancer.server.port=8000
+      - "traefik.http.routers.jobs.service=jobs-clean"
+      - "traefik.http.services.jobs-clean.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.jobs-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.jobs.middlewares=jobs-strip"
+
+  kpi-calculation-service:
+    labels:
+      - "traefik.http.routers.kpi.service=kpi-clean"
+      - "traefik.http.services.kpi-clean.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.kpi-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.kpi.middlewares=kpi-strip"
+
+  data-quality-service:
+    labels:
+      - "traefik.http.routers.data-quality.service=data-quality-clean"
+      - "traefik.http.services.data-quality-clean.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.dq-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.data-quality.middlewares=dq-strip"
+      # If an extra router 'dq' exists, point it to the same clean service:
+      - "traefik.http.routers.dq.service=data-quality-clean"
+      - "traefik.http.routers.dq.middlewares=dq-strip"
+
+  esg-service:
+    labels:
+      - "traefik.http.routers.esg.service=esg-clean"
+      - "traefik.http.services.esg-clean.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.esg-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.esg.middlewares=esg-strip"
+
+  report-compiler-service:
+    labels:
+      - "traefik.http.routers.reports.service=reports-clean"
+      - "traefik.http.services.reports-clean.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.reports-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.reports.middlewares=reports-strip"
+
+  xbrl-mapping-service:
+    labels:
+      - "traefik.http.routers.xbrl.service=xbrl-clean"
+      - "traefik.http.services.xbrl-clean.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.xbrl-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.xbrl.middlewares=xbrl-strip"
+
+  search-index-service:
+    labels:
+      - "traefik.http.routers.search.service=search-clean"
+      - "traefik.http.services.search-clean.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.search-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.search.middlewares=search-strip"
+
+  evidence-store:
+    labels:
+      - "traefik.http.routers.evidence.service=evidence-clean"
+      - "traefik.http.services.evidence-clean.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.evidence-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.evidence.middlewares=evidence-strip"

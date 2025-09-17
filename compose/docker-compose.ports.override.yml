@@ -1,0 +1,19 @@
+# D:\CT2\compose\docker-compose.ports.override.yml
+services:
+  report-compiler-service:
+    ports: ["18000:8000"]      # http://localhost:18000
+
+  xbrl-mapping-service:
+    ports: ["18001:8000"]      # http://localhost:18001
+
+  jobs-service:
+    ports: ["18002:8000"]      # http://localhost:18002
+
+  time-series-service:
+    ports: ["18003:8000"]      # http://localhost:18003
+
+  emission-factors-service:
+    ports: ["18004:8000"]      # http://localhost:18004
+
+  dashboards-service:
+    ports: ["13000:3000"]      # http://localhost:13000

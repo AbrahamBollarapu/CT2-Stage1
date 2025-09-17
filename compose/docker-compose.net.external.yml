@@ -1,0 +1,4 @@
+networks:
+  ct2-net:
+    external: true
+    name: ct2_ct2-net

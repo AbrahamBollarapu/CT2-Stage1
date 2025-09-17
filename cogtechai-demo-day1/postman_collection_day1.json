@@ -1,0 +1,43 @@
+{
+  "info": {
+    "name": "CogTechAI Demo Day-1",
+    "_postman_id": "e1bb6b46-7a6b-4a51-9a2f-ct2-demo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Jobs Health",
+      "request": {
+        "method": "GET",
+        "url": "{{base}}/api/jobs/health"
+      }
+    },
+    {
+      "name": "Evidence Health",
+      "request": {
+        "method": "GET",
+        "url": "{{base}}/api/evidence/health"
+      }
+    },
+    {
+      "name": "Time Series Health",
+      "request": {
+        "method": "GET",
+        "url": "{{base}}/api/time-series/health"
+      }
+    },
+    {
+      "name": "Emission Factors Health",
+      "request": {
+        "method": "GET",
+        "url": "{{base}}/api/emission-factors/health"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:8081"
+    }
+  ]
+}

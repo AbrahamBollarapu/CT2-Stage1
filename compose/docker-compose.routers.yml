@@ -1,64 +1,115 @@
+# docker-compose.routers.yml
+# Traefik routing labels for CT2 services (no "version:" key by design)
+
 services:
-  report-compiler-service:
-    networks: [ct2-net]
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
-      - traefik.http.routers.reports.entrypoints=web
-      - traefik.http.services.reports.loadbalancer.server.port=8000
 
-  ingestion-service:
-    networks: [ct2-net]
+   suppliers-service:
     labels:
       - traefik.enable=true
-      - traefik.http.routers.ingest.rule=(PathPrefix(`/api/ingest`) || PathPrefix(`/api/ingestion`))
-      - traefik.http.routers.ingest.entrypoints=web
-      - traefik.http.services.ingest.loadbalancer.server.port=8000
+      # Router name: "suppliers"
+      - traefik.http.routers.suppliers.rule=PathPrefix(`/api/suppliers`) || PathPrefix(`/api/assessments`)
+      - traefik.http.routers.suppliers.entrypoints=web
+      - traefik.http.routers.suppliers.service=suppliers
+      # In the "routers" file we keep the global /api strip enabled by default…
+      - traefik.http.routers.suppliers.middlewares=api-stripper@file
+      # …and point the Traefik service at the container’s port 8000
+      - traefik.http.services.suppliers.loadbalancer.server.port=8000
+      # Ensure Traefik talks to the same docker network your app is on (adjust if your default network name differs)
+      - traefik.docker.network=ct2_default
+  # ---------- S1 core ----------
+   time-series-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
 
-  emission-factors-service:
-    networks: [ct2-net]
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.factors.rule=PathPrefix(`/api/factors`)
-      - traefik.http.routers.factors.entrypoints=web
-      - traefik.http.services.factors.loadbalancer.server.port=8000
+      # single canonical router for TS
+      - "traefik.http.routers.timeseries.entrypoints=web"
+      - "traefik.http.routers.timeseries.rule=PathPrefix(`/api/time-series`)"
+      - "traefik.http.routers.timeseries.priority=900"
+      - "traefik.http.routers.timeseries.service=ts-svc"
 
-  data-quality-service:
-    networks: [ct2-net]
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.data-quality.rule=(PathPrefix(`/api/data-quality`) || PathPrefix(`/api/dataquality`))
-      - traefik.http.routers.data-quality.entrypoints=web
-      - traefik.http.services.data-quality.loadbalancer.server.port=8000
+      # backend service/port
+      - "traefik.http.services.ts-svc.loadbalancer.server.port=8000"
 
-  kpi-calculation-service:
-    networks: [ct2-net]
+   ingestion-service:
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.kpi.rule=PathPrefix(`/api/kpi`)
-      - traefik.http.routers.kpi.entrypoints=web
-      - traefik.http.services.kpi.loadbalancer.server.port=8000
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
+      - "traefik.http.routers.ingest.entrypoints=web,admin"
+      - "traefik.http.routers.ingest.rule=PathPrefix(`/api/ingest`)"
+      - "traefik.http.services.ingest.loadbalancer.server.port=8000"
 
-  dashboards-service:
-    networks: [ct2-net]
+   evidence-store:
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.dash.rule=(PathPrefix(`/api/dash`) || PathPrefix(`/api/dashboards`))
-      - traefik.http.routers.dash.entrypoints=web
-      - traefik.http.services.dash.loadbalancer.server.port=8000
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
+      - "traefik.http.routers.evidence.entrypoints=web,admin"
+      - "traefik.http.routers.evidence.rule=PathPrefix(`/api/evidence`)"
+      - "traefik.http.services.evidence.loadbalancer.server.port=8000"
 
-  search-index-service:
-    networks: [ct2-net]
+  # ---------- S2 loop ----------
+   emission-factors-service:
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.search.rule=(PathPrefix(`/api/search`) || PathPrefix(`/api/search-index`))
-      - traefik.http.routers.search.entrypoints=web
-      - traefik.http.services.search.loadbalancer.server.port=8000
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
+      - "traefik.http.routers.emf.entrypoints=web"
+      - "traefik.http.routers.emf.rule=PathPrefix(`/api/emission-factors`)"
+      - "traefik.http.services.emf.loadbalancer.server.port=8000"
 
-  jobs-service:
-    networks: [ct2-net]
+   esg-service:
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.jobs.rule=PathPrefix(`/api/jobs`)
-      - traefik.http.routers.jobs.entrypoints=web
-      - traefik.http.services.jobs.loadbalancer.server.port=8000
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
+      - "traefik.http.routers.esg.entrypoints=web"
+      - "traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)"
+      - "traefik.http.services.esg.loadbalancer.server.port=8000"
+
+   data-quality-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
+      - "traefik.http.routers.dq.entrypoints=web"
+      - "traefik.http.routers.dq.rule=PathPrefix(`/api/data-quality`)"
+      - "traefik.http.services.dq.loadbalancer.server.port=8000"
+
+   kpi-calculation-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
+      - "traefik.http.routers.kpi.entrypoints=web"
+      - "traefik.http.routers.kpi.rule=PathPrefix(`/api/kpi`)"
+      - "traefik.http.services.kpi.loadbalancer.server.port=8000"
+
+   jobs-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
+      - "traefik.http.routers.jobs.entrypoints=web"
+      - "traefik.http.routers.jobs.rule=PathPrefix(`/api/jobs`)"
+      - "traefik.http.services.jobs.loadbalancer.server.port=8000"
+   search-index-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
+      - "traefik.http.routers.search.entrypoints=web"
+      - "traefik.http.routers.search.rule=PathPrefix(`/api/search`)"
+      - "traefik.http.services.search.loadbalancer.server.port=8000"
+
+  # ---------- TrustStrip / reporting ----------
+   report-compiler-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
+      - "traefik.http.routers.reports.entrypoints=web"
+      - "traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)"
+      - "traefik.http.services.reports.loadbalancer.server.port=8000"
+
+   xbrl-mapping-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-net"
+      - "traefik.http.routers.xbrl.entrypoints=web"
+      - "traefik.http.routers.xbrl.rule=PathPrefix(`/api/xbrl`)"
+      - "traefik.http.services.xbrl.loadbalancer.server.port=8000"
+
+

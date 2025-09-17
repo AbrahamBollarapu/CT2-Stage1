@@ -1,4 +1,4 @@
-﻿# --- deps stage ---
+# --- deps stage ---
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -19,7 +19,7 @@ ENV NODE_ENV=production
 COPY package.json ./
 COPY --from=build /app/dist ./dist
 # install only prod deps for runtime (optional if none needed)
-RUN [ -f package-lock.json ] && if [ -f package-lock.json ]; then npm ci --omit=dev --no-audit --fund=false; else npm install --omit=dev --no-audit --fund=false; fi --omit=dev --no-audit --no-fund || true
+RUN [ -f package-lock.json ] && if [ -f package-lock.json ]; then npm install --omit=dev --no-audit --fund=false; else npm install --omit=dev --no-audit --fund=false; fi --omit=dev --no-audit --no-fund || true
 EXPOSE 8000
 CMD ["node","dist/server.js"]
 

@@ -1,0 +1,13 @@
+{
+  "scope": "2",
+  "unit": "kgCO2e/kWh",
+  "region": "IN",
+  "factors": [
+    {
+      "code": "GRID-AVG-2024",
+      "value": 0.82,
+      "valid_from": "2024-01-01",
+      "valid_to": "2024-12-31"
+    }
+  ]
+}

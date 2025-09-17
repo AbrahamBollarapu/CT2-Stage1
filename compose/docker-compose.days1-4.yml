@@ -1,0 +1,296 @@
+# Day 1 & Day 2 services with Traefik labels and healthchecks
+services:
+  # =======================
+  # Day 1 — Core services
+  # =======================
+  ingestion-service:
+    profiles: ["day1","s1"]
+    build:
+      context: .
+      dockerfile: services/ingestion-service/Dockerfile
+    environment:
+      PORT: 8000
+      EVIDENCE_DIR: /evidence
+      EVIDENCE_API_URL: http://evidence-store:8000/api/evidence
+    volumes:
+      - evidence_vol:/evidence
+    depends_on:
+      evidence-store:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - default
+      - ct2-net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.ingest.rule=PathPrefix(`/api/ingest`)
+      - traefik.http.services.ingest.loadbalancer.server.port=8000
+
+  evidence-db:
+    profiles: ["day1","s1"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: evidence
+      POSTGRES_PASSWORD: evidence
+      POSTGRES_DB: evidence
+    volumes:
+      - evidence_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evidence -d evidence"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  evidence-store:
+    profiles: ["day1","s1"]
+    build:
+      context: .
+      dockerfile: services/evidence-store/Dockerfile
+    environment:
+      PORT: 8000
+      DATABASE_URL: postgresql+psycopg://evidence:evidence@evidence-db:5432/evidence
+      EVIDENCE_DIR: /evidence
+    volumes:
+      - evidence_vol:/evidence
+    depends_on:
+      evidence-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/api/evidence/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - default
+      - ct2-net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.evidence.rule=PathPrefix(`/api/evidence`)
+      - traefik.http.services.evidence.loadbalancer.server.port=8000
+
+  timeseries-db:
+    profiles: ["day1","s1"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: timeseries
+      POSTGRES_PASSWORD: timeseries
+      POSTGRES_DB: timeseries
+    volumes:
+      - timeseries_db_data:/var/lib/postgresql/data
+      # init DDL (unique index etc.) — runs only on first init of the volume
+      - ./compose/sql/timeseries:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timeseries -d timeseries"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  time-series-service:
+    profiles: ["day1","s1"]
+    build:
+      context: .
+      dockerfile: services/time-series-service/Dockerfile
+    environment:
+      PORT: 8000
+      DATABASE_URL: postgresql+psycopg://timeseries:timeseries@timeseries-db:5432/timeseries
+    depends_on:
+      timeseries-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/api/time-series/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - default         # reach the PG DB
+      - ct2-net         # be reachable by Traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.timeseries.rule=PathPrefix(`/api/time-series`)
+      - traefik.http.services.timeseries.loadbalancer.server.port=8000
+
+  # =======================
+  # Day 2 — ESG / DQ / KPI / Jobs / Search
+  # =======================
+  emission-factors-service:
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/emission-factors-service/Dockerfile
+    environment:
+      PORT: 8000
+      # optional: PREFIX is supported by your server.mjs; defaults to /api/emission-factors
+      # PREFIX: /api/emission-factors
+    networks:
+      - ct2-net
+      - default
+    labels:
+      - "traefik.enable=true"
+      # explicitly bind to the web entrypoint (8081)
+      - "traefik.http.routers.emf.entrypoints=web"
+      # route on the expected prefix
+      - "traefik.http.routers.emf.rule=PathPrefix(`/api/emission-factors`)"
+      # service name + internal port
+      - "traefik.http.routers.emf.service=emf"
+      - "traefik.http.services.emf.loadbalancer.server.port=8000"
+      # tell Traefik which Docker network to use to reach the container
+      - "traefik.docker.network=ct2-net"
+
+  esg-service:
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/esg-service/Dockerfile
+    environment:
+      PORT: 8000
+      TS_API: http://time-series-service:8000
+      EF_API: http://emission-factors-service:8000
+    depends_on:
+      time-series-service:
+        condition: service_healthy
+      emission-factors-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ct2-net
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)
+      - traefik.http.services.esg.loadbalancer.server.port=8000
+
+  data-quality-service:
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/data-quality-service/Dockerfile
+    environment:
+      PORT: 8000
+      TS_API: http://time-series-service:8000
+    depends_on:
+      time-series-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ct2-net
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.dq.rule=PathPrefix(`/api/data-quality`)
+      - traefik.http.services.dq.loadbalancer.server.port=8000
+
+  kpi-calculation-service:
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/kpi-calculation-service/Dockerfile
+    environment:
+      PORT: 8000
+      TS_API: http://time-series-service:8000
+    depends_on:
+      time-series-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ct2-net
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.kpi.rule=PathPrefix(`/api/kpi`)
+      - traefik.http.services.kpi.loadbalancer.server.port=8000
+
+  jobs-service:
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/jobs-service/Dockerfile
+    environment:
+      PORT: 8000
+      ESG_API: http://esg-service:8000
+      DQ_API:  http://data-quality-service:8000
+      KPI_API: http://kpi-calculation-service:8000
+    depends_on:
+      esg-service:
+        condition: service_healthy
+      data-quality-service:
+        condition: service_healthy
+      kpi-calculation-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ct2-net
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.jobs.rule=PathPrefix(`/api/jobs`)
+      - traefik.http.services.jobs.loadbalancer.server.port=8000
+
+  # (Optional) simple search service you had running
+  search-index-service:
+    profiles: ["day2","s1"]
+    build:
+      context: .
+      dockerfile: services/search-service/Dockerfile
+    environment:
+      PORT: 8000
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ct2-net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-net
+      - traefik.http.routers.search.rule=PathPrefix(`/api/search`)
+      - traefik.http.services.search.loadbalancer.server.port=8000
+
+  # (Optional) tiny health mock you started
+  health-mock:
+    profiles: ["day2","s1"]
+    image: ghcr.io/traefik/whoami:v1.10.2
+    command:
+      - --port=8000
+    networks:
+      - ct2-net
+
+# shared volumes
+volumes:
+  evidence_vol:
+  reports_vol:
+  evidence_db_data:
+  timeseries_db_data:
+
+networks:
+  ct2-net:
+    external: true
+
+
