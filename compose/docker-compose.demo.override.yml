@@ -1,87 +1,33 @@
-# D:/CT2/compose/docker-compose.demo.override.yml
-# Demo override: adds ingestion-service, evidence-store, time-series strip middleware, KPI, and Jobs.
-# Use with:
-#   docker compose -p ct2-demo -f docker-compose.demo.yml -f docker-compose.demo.override.yml --profile demo up -d
+﻿# DEMO override (additive-only). Keeps all existing services/volumes intact.
+# - Adds dashboards-service (builds from ../apps/frontend/dashboards-service).
+# - Ensures Traefik loads our file-provider rules (traefik/ct2-dynamic.yml).
 
 services:
-  ingestion-service:
+  dashboards-service:
+    container_name: ct2-demo-dashboards-service-1
+    image: ct2-demo-dashboards-service
     build:
-      context: ../apps/backend/services/ingestion-service
-    image: ct2-demo-ingestion-service
+      context: ../apps/frontend/dashboards-service   # <-- resolves to D:\CT2\apps\frontend\dashboards-service
+      dockerfile: Dockerfile
     profiles: ["demo"]
-    environment:
-      - PORT=8000
-      - EVIDENCE_DIR=/data/evidence
+    restart: unless-stopped
+    networks:
+      - default
+    # No labels needed; routing comes from the Traefik file provider
+    # pointing to http://dashboards-service:8000
+
+  traefik:
+    # Merge into existing Traefik service (additive)
     volumes:
-      - evidence_data:/data/evidence
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ingest.rule=PathPrefix(`/api/ingest`)"
-      - "traefik.http.routers.ingest.entrypoints=web"
-      - "traefik.http.services.ingest.loadbalancer.server.port=8000"
+      - ./traefik/ct2-dynamic.yml:/etc/traefik/dynamic/ct2-dynamic.yml:ro
+    command:
+      - "--entrypoints.web.address=:8081"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--api.dashboard=true"
 
-  evidence-store:
-    build:
-      context: ../apps/backend/services/evidence-store
-    image: ct2-demo-evidence-store
-    profiles: ["demo"]
-    environment:
-      - PORT=8000
-      - EVIDENCE_DIR=/data/evidence
-    volumes:
-      - evidence_data:/data/evidence
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.evidence.rule=PathPrefix(`/api/evidence`)"
-      - "traefik.http.routers.evidence.entrypoints=web"
-      - "traefik.http.services.evidence.loadbalancer.server.port=8000"
-
-  # --- Time Series with stripPrefix middleware ---
-  time-series-service:
-    # assumes it's already defined in base compose; here we only add/override labels
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ts.rule=PathPrefix(`/api/time-series`)"
-      - "traefik.http.routers.ts.entrypoints=web"
-      - "traefik.http.routers.ts.priority=50"
-      - "traefik.http.routers.ts.middlewares=ts-strip"
-      - "traefik.http.middlewares.ts-strip.stripprefix.prefixes=/api/time-series"
-      - "traefik.http.middlewares.ts-strip.stripprefix.forceSlash=true"
-      - "traefik.http.services.ts.loadbalancer.server.port=8000"
-
-  # --- KPI service ---
-  kpi-calculation-service:
-    build:
-      context: ../apps/backend/services/kpi-calculation-service
-    image: ct2-demo-kpi-calculation-service
-    profiles: ["demo"]
-    environment:
-      - PORT=8000
-      - DEMO_API_KEY=ct2-dev-key
-      - GW_BASE=http://traefik:80
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.kpi.rule=PathPrefix(`/api/kpi`)"
-      - "traefik.http.routers.kpi.entrypoints=web"
-      - "traefik.http.services.kpi.loadbalancer.server.port=8000"
-
-  # --- Jobs service (orchestrator) ---
-  jobs-service:
-    build:
-      context: ../apps/backend/services/jobs-service
-    image: ct2-demo-jobs-service
-    profiles: ["demo"]
-    environment:
-      - PORT=8000
-      - DEMO_API_KEY=ct2-dev-key
-      # Order matters: try Traefik first, then direct container, then host gateway.
-      - GW_BASES=http://traefik:80,http://kpi-calculation-service:8000,http://localhost:8081
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jobs.rule=PathPrefix(`/api/jobs`)"
-      - "traefik.http.routers.jobs.entrypoints=web"
-      - "traefik.http.routers.jobs.priority=60"
-      - "traefik.http.services.jobs.loadbalancer.server.port=8000"
-
-volumes:
-  evidence_data: {}
+networks:
+  default:
+    # Keep the project default network name stable
+    name: ct2-demo_default
