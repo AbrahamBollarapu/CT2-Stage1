@@ -1,80 +1,87 @@
-// /app/server.mjs — ingestion-service
+// D:/CT2/apps/backend/services/ingestion-service/server.mjs
 import express from "express";
-import crypto from "crypto";
+import cors from "cors";
+import multer from "multer";
+import fs from "fs";
+import fsp from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+import { nanoid } from "nanoid";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json({ limit: "20mb" }));
+app.disable("x-powered-by");
+app.use(cors());
 
-const PORT   = Number(process.env.PORT || 8000);
-const PREFIX = (process.env.PREFIX?.replace(/\/+$/, "") || "/api/ingest");
-const EVIDENCE_API = (process.env.EVIDENCE_API?.replace(/\/+$/, "") || "http://evidence-store:8000/api/evidence");
-const JOBS_API     = (process.env.JOBS_API?.replace(/\/+$/, "") || "http://jobs-service:8000/api/jobs");
+// Dev-mode auth: accept optional x-api-key (no-op)
+app.use((req, _res, next) => { /* could log x-api-key/x-org-id here */ next(); });
 
-const ok  = (res, extra={}) => res.json({ ok:true, ...extra });
-const bad = (res, code, extra={}) => res.status(400).json({ ok:false, error:code, ...extra });
+app.get("/api/ingest/health", (_req, res) => {
+  res.json({ ok: true, service: "ingestion-service", ts: new Date().toISOString() });
+});
 
-async function fetchBufferFromUrl(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`GET ${url} -> ${r.status}`);
-  const ab = await r.arrayBuffer();
-  return Buffer.from(ab);
-}
+const EVIDENCE_DIR = process.env.EVIDENCE_DIR || "/data/evidence";
+await fsp.mkdir(EVIDENCE_DIR, { recursive: true });
 
-async function putEvidence(evidence_id, org_id, mime, buf) {
-  const url = `${EVIDENCE_API}/${encodeURIComponent(evidence_id)}?org_id=${encodeURIComponent(org_id)}`
-  const r = await fetch(url, {
-    method: "PUT",
-    headers: { "content-type": mime || "application/octet-stream", "content-length": String(buf.length) },
-    body: buf
-  });
-  if (!r.ok) throw new Error(`PUT evidence ${evidence_id} -> ${r.status}`);
-  return true;
-}
+// Multer (memory storage → we write to shared volume)
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }); // 25 MB
 
-async function enqueueJob(job, params) {
-  // Prefer real jobs-service if reachable; otherwise generate a fake job_id
+/**
+ * POST /api/ingest/documents
+ * multipart/form-data:
+ *   - file: (binary)
+ *   - org_id: string
+ *   - tags?: string
+ *
+ * Returns: { ok, evidence_id, job_id, filename, size }
+ */
+app.post("/api/ingest/documents", upload.single("file"), async (req, res) => {
   try {
-    const r = await fetch(`${JOBS_API}/run`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ job, params })
-    });
-    if (r.ok) return r.json();
-  } catch {}
-  return { ok:true, job_id: `job_${crypto.randomUUID()}`, queued:false, note:"jobs-service not reachable; local stub id issued" };
-}
-
-async function postDocuments(req, res) {
-  try {
-    const b = req.body || {};
-    const { org_id, source, mime, name } = b;
-    const content = b.content; // base64 string OR url string
-    if (!org_id || !content) return bad(res, "bad_payload", { need:"org_id + content(base64|url)" });
-
-    let buf;
-    if (content.startsWith("http://") || content.startsWith("https://")) {
-      buf = await fetchBufferFromUrl(content);
-    } else {
-      try { buf = Buffer.from(content, "base64"); }
-      catch { return bad(res, "bad_content", { msg:"content must be base64 or http(s) url" }); }
+    const org_id = (req.body.org_id || "").toString().trim();
+    if (!org_id) {
+      return res.status(400).json({ ok: false, error: "org_id is required" });
+    }
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: "file is required" });
     }
 
-    const sha256 = crypto.createHash("sha256").update(buf).digest("hex");
-    const evidence_id = crypto.randomUUID();
-    await putEvidence(evidence_id, org_id, mime, buf);
+    const originalName = req.file.originalname || "upload.bin";
+    const contentType = req.file.mimetype || "application/octet-stream";
+    const evidence_id = "ev_" + nanoid(12);
+    const job_id = "job_" + nanoid(10);
 
-    const jobRes = await enqueueJob("report.parse", { evidence_id, org_id, mime, name, sha256, source:source||"upload" });
-    return ok(res, { evidence_id, job_id: jobRes.job_id, sha256, size: buf.length });
-  } catch (e) {
-    return res.status(500).json({ ok:false, error:"ingest_error", details:String(e?.message||e) });
+    // Destination paths in shared volume
+    const base = path.join(EVIDENCE_DIR, evidence_id);
+    const dataPath = base;                  // no extension
+    const metaPath = base + ".json";        // adjacent metadata
+
+    // Write file bytes
+    await fsp.writeFile(dataPath, req.file.buffer);
+
+    // Write metadata (include original filename and content type)
+    const meta = {
+      evidence_id,
+      org_id,
+      filename: originalName,
+      content_type: contentType,
+      size: req.file.size,
+      created_at: new Date().toISOString()
+    };
+    await fsp.writeFile(metaPath, JSON.stringify(meta, null, 2), "utf8");
+
+    res.json({ ok: true, evidence_id, job_id, filename: originalName, size: req.file.size });
+  } catch (err) {
+    console.error("[ingestion] error:", err);
+    res.status(500).json({ ok: false, error: "internal_error" });
   }
-}
+});
 
-app.get("/health", (_q,r)=> ok(r,{service:"ingestion",root:true}));
-app.get(`${PREFIX}/health`, (_q,r)=> ok(r,{service:"ingestion"}));
-app.post("/documents", postDocuments);
-app.post(`${PREFIX}/documents`, postDocuments);
+// Root text for quick curl
+app.get("/", (_req, res) => res.type("text/plain").send("ingestion-service running"));
 
-app.listen(PORT, "0.0.0.0", () =>
-  console.log(`[ingestion] :${PORT} (PREFIX=${PREFIX}, EVIDENCE_API=${EVIDENCE_API}, JOBS_API=${JOBS_API})`)
-);
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`ingestion-service listening on http://0.0.0.0:${PORT}`);
+});

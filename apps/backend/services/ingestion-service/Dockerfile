@@ -1,20 +1,18 @@
+# D:/CT2/apps/backend/services/ingestion-service/Dockerfile
 FROM node:20-alpine
 
-WORKDIR /app/services/ingestion-service
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev || npm i --omit=dev
 
-# Install production deps (robust with/without lockfile)
-COPY services/ingestion-service/package*.json ./
-RUN if [ -f package-lock.json ]; then (npm install --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund); else npm install --omit=dev --no-audit --no-fund; fi
+COPY server.mjs ./
 
-# Shared tracing helpers (resolve via ../_shared/...)
-COPY _shared /app/_shared
+ENV NODE_ENV=production
+ENV PORT=8000
 
-# App sources
-COPY services/ingestion-service/ .
-
-ENV NODE_ENV=production \
-    PORT=8000 \
-    EVIDENCE_DIR=/evidence
+# Evidence root (shared via volume)
+ENV EVIDENCE_DIR=/data/evidence
+RUN mkdir -p $EVIDENCE_DIR
 
 EXPOSE 8000
-CMD ["node","server.js"]
+CMD ["node", "server.mjs"]

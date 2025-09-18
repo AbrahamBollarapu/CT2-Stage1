@@ -1,18 +1,16 @@
-FROM python:3.11-slim
+# D:/CT2/apps/backend/services/kpi-calculation-service/Dockerfile
+FROM node:20-alpine
+WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev || npm i --omit=dev
 
-WORKDIR /app/services/kpi-calculation-service
+COPY server.mjs ./
 
-COPY services/kpi-calculation-service/requirements.txt /app/services/kpi-calculation-service/requirements.txt
-RUN pip install --no-cache-dir -r /app/services/kpi-calculation-service/requirements.txt
-
-COPY _shared /app/_shared
-ENV PYTHONPATH=/app
-
-COPY services/kpi-calculation-service/ .
-
+ENV NODE_ENV=production
 ENV PORT=8000
+ENV DEMO_API_KEY=ct2-dev-key
+ENV GW_BASE=http://traefik:80
+
 EXPOSE 8000
-CMD ["uvicorn","main:app","--host","0.0.0.0","--port","8000"]
+CMD ["node", "server.mjs"]
