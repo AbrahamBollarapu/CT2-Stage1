@@ -1,116 +1,181 @@
-# D:/CT2/apps/backend/services/time-series-service/app/main.py
-from fastapi import FastAPI, APIRouter, Header, HTTPException, Query
+# apps/backend/services/time-series-service/app/main.py
+from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Tuple
-from datetime import datetime, timezone
-import uvicorn
+from typing import List, Optional
+from datetime import datetime, timedelta, timezone
+import os
+import pandas as pd
 
-app = FastAPI(title="time-series-service", version="1.1.0")
+app = FastAPI(title="time-series-service")
 
-# --- In-memory store (demo-safe) ---
-# Keyed by (org_id, meter, unit) -> list[dict(ts:str, value:float)]
-STORE: Dict[Tuple[str, str, str], List[Dict]] = {}
+DATA_DIR = os.environ.get("DATA_DIR", "/data")
+PARQUET_PATH = os.path.join(DATA_DIR, "points.parquet")
+JSONL_PATH = os.path.join(DATA_DIR, "points.jsonl")
 
-# --- Models ---
-class Point(BaseModel):
-    ts: str = Field(..., description="ISO8601 (e.g. 2024-11-05T00:00:00Z)")
+# -----------------------------
+# Models
+# -----------------------------
+class InPoint(BaseModel):
+    ts: datetime
+    metric: str
     value: float
 
-class IngestBody(BaseModel):
+class IngestRequest(BaseModel):
     org_id: str
     meter: str
     unit: str
-    points: List[Point]
+    points: List[InPoint]
 
-# --- Utilities ---
-def _parse_iso(dt: str) -> datetime:
+class QueryPoint(BaseModel):
+    ts: datetime
+    metric: str
+    value: float
+    org_id: str
+    meter: Optional[str] = None
+    unit: Optional[str] = None
+
+class QueryResponse(BaseModel):
+    ok: bool = True
+    count: int
+    points: List[QueryPoint]
+
+# -----------------------------
+# Helpers
+# -----------------------------
+def _ensure_dir():
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+def _df_from_storage() -> pd.DataFrame:
+    """
+    Read whichever store exists; prefer Parquet if present.
+    Expected columns: org_id, meter, unit, metric, value, ts (datetime64[ns, UTC])
+    """
+    if os.path.exists(PARQUET_PATH):
+        df = pd.read_parquet(PARQUET_PATH)
+    elif os.path.exists(JSONL_PATH):
+        df = pd.read_json(JSONL_PATH, lines=True)
+    else:
+        # empty frame with correct dtypes
+        df = pd.DataFrame(
+            columns=["org_id", "meter", "unit", "metric", "value", "ts"]
+        )
+
+    if "ts" in df.columns and not pd.api.types.is_datetime64_any_dtype(df["ts"]):
+        df["ts"] = pd.to_datetime(df["ts"], utc=True, errors="coerce")
+    return df
+
+def _append_to_storage(df: pd.DataFrame):
+    _ensure_dir()
+    # write Parquet as canonical; keep JSONL as backup/inspection
+    if len(df) == 0:
+        return
+    # Append logic: read old, concat, dropna on ts, sort
+    old = _df_from_storage()
+    all_df = pd.concat([old, df], ignore_index=True)
+    all_df = all_df.dropna(subset=["ts"])
+    all_df = all_df.sort_values("ts")
+    all_df.to_parquet(PARQUET_PATH, index=False)
+    # also write/overwrite jsonl (not strictly append to keep it simple)
+    all_df.to_json(JSONL_PATH, orient="records", lines=True, date_format="iso")
+
+def _parse_range(range_str: Optional[str]) -> datetime:
+    """Return a UTC 'since' timestamp from compact ranges like 15m, 1h, 24h, 7d…"""
+    now = datetime.now(timezone.utc)
+    if not range_str:
+        return now - timedelta(hours=24)
+
     try:
-        if dt.endswith("Z"):
-            return datetime.fromisoformat(dt.replace("Z", "+00:00"))
-        return datetime.fromisoformat(dt)
+        num = int(range_str[:-1])
+        unit = range_str[-1].lower()
+        if unit == "m":
+            return now - timedelta(minutes=num)
+        if unit == "h":
+            return now - timedelta(hours=num)
+        if unit == "d":
+            return now - timedelta(days=num)
+        if unit == "w":
+            return now - timedelta(weeks=num)
+        # fall back to hours if weird unit
+        return now - timedelta(hours=int(range_str))
     except Exception:
-        raise HTTPException(status_code=400, detail=f"Invalid timestamp: {dt}")
+        # Accept ISO-8601 “range” fallback like “PT1H”? If unrecognized, default 24h
+        return now - timedelta(hours=24)
 
-def _key(org_id: str, meter: str, unit: str) -> Tuple[str, str, str]:
-    return (org_id.strip(), meter.strip(), unit.strip())
-
-def _ingest(body: IngestBody) -> Dict:
-    k = _key(body.org_id, body.meter, body.unit)
-    series = STORE.setdefault(k, [])
-    for p in body.points:
-        _ = _parse_iso(p.ts)  # validate
-        series.append({"ts": p.ts, "value": float(p.value)})
-    series.sort(key=lambda r: _parse_iso(r["ts"]))
-    return {"ok": True, "ingested": len(body.points), "series_size": len(series)}
-
-def _read(
-    org_id: str,
-    meter: str,
-    unit: str,
-    frm: Optional[str],
-    to: Optional[str],
-) -> Dict:
-    k = _key(org_id, meter, unit)
-    series = STORE.get(k, [])
-
-    dt_from = _parse_iso(frm) if frm else None
-    dt_to = _parse_iso(to) if to else None
-
-    def _in_window(rec):
-        dt = _parse_iso(rec["ts"])
-        if dt_from and dt < dt_from:
-            return False
-        if dt_to and dt > dt_to:
-            return False
-        return True
-
-    out = [r for r in series if _in_window(r)]
-    out.sort(key=lambda r: _parse_iso(r["ts"]))
-    return {
-        "ok": True,
-        "org_id": org_id,
-        "meter": meter,
-        "unit": unit,
-        "count": len(out),
-        "points": out,
-    }
-
-# --- Routers ---
-# Prefixed router (when Traefik does NOT strip)
-api_router = APIRouter(prefix="/api/time-series", tags=["time-series"])
-
-# Unprefixed router (compat when Traefik StripPrefix(`/api/time-series`) is enabled)
-root_router = APIRouter(tags=["time-series-compat"])
-
-# --- Health ---
-@api_router.get("/health")
-@root_router.get("/health")  # compatibility
+# -----------------------------
+# Routes
+# -----------------------------
+@app.get("/health")
 def health():
     return {"ok": True, "service": "time-series", "ts": datetime.now(timezone.utc).isoformat()}
 
-# --- POST /points (ingest) ---
-@api_router.post("/points")
-@root_router.post("/points")  # compatibility
-def ingest_points(body: IngestBody, x_api_key: Optional[str] = Header(None)):  # noqa: ARG002 (demo auth)
-    return _ingest(body)
+@app.post("/api/time-series/points")
+def ingest_points(body: IngestRequest):
+    # normalize payload to DF
+    rows = []
+    for p in body.points:
+        rows.append({
+            "org_id": body.org_id,
+            "meter": body.meter,
+            "unit": body.unit,
+            "metric": p.metric,
+            "value": float(p.value),
+            "ts": pd.to_datetime(p.ts, utc=True)
+        })
+    df = pd.DataFrame(rows)
+    _append_to_storage(df)
+    return {"ok": True, "ingested": len(df), "series_size": len(_df_from_storage())}
 
-# --- GET /points (reader) ---
-@api_router.get("/points")
-@root_router.get("/points")  # compatibility
-def read_points(
-    org_id: str = Query(...),
-    meter: str  = Query(...),
-    unit: str   = Query(...),
-    frm: Optional[str] = Query(None, alias="from"),
-    to: Optional[str]  = Query(None),
-    x_api_key: Optional[str] = Header(None),  # noqa: ARG002
+@app.get("/api/time-series/query", response_model=QueryResponse)
+def query_points(
+    org_id: str = Query(..., description="Organization id"),
+    metric: str = Query(..., description="Metric name (e.g., demo.kwh)"),
+    meter: Optional[str] = Query(None, description="Optional meter id"),
+    since: Optional[datetime] = Query(None, description="ISO-8601 timestamp"),
+    range: Optional[str] = Query(None, description="Window like 15m,1h,24h,7d"),
+    limit: int = Query(1000, ge=1, le=10000),
+    order: str = Query("asc", pattern="^(asc|desc)$"),
 ):
-    return _read(org_id, meter, unit, frm, to)
+    df = _df_from_storage()
+    if df.empty:
+        return {"ok": True, "count": 0, "points": []}
 
-# Mount both routers
-app.include_router(api_router)
-app.include_router(root_router)
+    # filters
+    df = df[df["org_id"] == org_id]
+    df = df[df["metric"] == metric]
+    if meter:
+        df = df[df["meter"] == meter]
 
-# Optional: local run
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000)
+    # time filter
+    if since:
+        since_dt = pd.to_datetime(since, utc=True, errors="coerce")
+    else:
+        since_dt = _parse_range(range)
+
+    if pd.notna(since_dt):
+        df = df[df["ts"] >= since_dt]
+
+    if df.empty:
+        return {"ok": True, "count": 0, "points": []}
+
+    # sort & limit
+    df = df.sort_values("ts", ascending=(order == "asc")).head(limit)
+
+    # shape response
+    points = [
+        QueryPoint(
+            ts=row.ts.to_pydatetime().replace(tzinfo=timezone.utc),
+            metric=row.metric,
+            value=float(row.value),
+            org_id=row.org_id,
+            meter=row.meter if "meter" in df.columns else None,
+            unit=row.unit if "unit" in df.columns else None,
+        ) for row in df.itertuples(index=False)
+    ]
+
+    return {"ok": True, "count": len(points), "points": points}
+# --- add below the existing /health route in apps/backend/services/time-series-service/app/main.py ---
+
+@app.get("/api/time-series/health")
+def health_alias():
+    # reuse the same data as /health
+    return health()

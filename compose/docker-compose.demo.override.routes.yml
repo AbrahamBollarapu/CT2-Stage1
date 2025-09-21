@@ -1,0 +1,24 @@
+services:
+  # ----------------------------------------
+  # Suppliers API routing via Traefik
+  # Exposes:  /api/suppliers/...
+  # NOTE: if your base file uses "suppliers-service" (plural),
+  #       change the key below to suppliers-service.
+  # ----------------------------------------
+  supplier-service:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api-suppliers.rule=PathPrefix(`/api/suppliers`)
+      - traefik.http.routers.api-suppliers.entrypoints=web
+      - traefik.http.services.api-suppliers.loadbalancer.server.port=8000
+
+  # ----------------------------------------
+  # KPI Calculation API routing via Traefik
+  # Exposes:  /api/kpi/...
+  # ----------------------------------------
+  kpi-calculation-service:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api-kpi.rule=PathPrefix(`/api/kpi`)
+      - traefik.http.routers.api-kpi.entrypoints=web
+      - traefik.http.services.api-kpi.loadbalancer.server.port=8000

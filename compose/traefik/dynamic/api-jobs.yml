@@ -1,0 +1,13 @@
+http:
+  routers:
+    api-jobs:
+      rule: PathPrefix(`/api/jobs`)
+      entryPoints:
+        - web
+      service: jobs-service
+
+  services:
+    jobs-service:
+      loadBalancer:
+        servers:
+          - url: "http://jobs-service:8000"

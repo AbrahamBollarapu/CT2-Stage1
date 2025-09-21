@@ -1,0 +1,15 @@
+# D:\CT2\compose\traefik\traefik.yml
+entryPoints:
+  web:
+    address: ":8081"
+
+api:
+  dashboard: true
+  insecure: true   # fine for local demo; remove in prod
+
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true

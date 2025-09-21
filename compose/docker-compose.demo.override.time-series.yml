@@ -1,0 +1,21 @@
+﻿services:
+  time-series-service:
+    image: ct2-demo-time-series-service
+    build:
+      context: ../apps/backend/services/time-series-service
+      dockerfile: Dockerfile
+    container_name: ct2-demo-time-series-service-1
+    environment:
+      NODE_ENV: development
+    expose:
+      - "8000"          # for Traefik on same network
+    ports:
+      - "8025:8000"     # optional: direct local testing
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - default

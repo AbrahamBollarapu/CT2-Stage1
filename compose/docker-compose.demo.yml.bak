@@ -1,0 +1,159 @@
+services:
+  traefik:
+    profiles: ["demo"]
+    image: traefik:v2.11
+    command:
+      - --log.level=DEBUG
+      - --providers.docker=true
+      - --providers.docker.watch=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=ct2-demo_default
+      - --entrypoints.web.address=:8081
+      - --api.insecure=true
+      - --accesslog=true
+    ports:
+      - "8081:8081"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+    networks: [default]
+
+  dashboards-service:
+    profiles: ["demo"]
+    build: ../apps/frontend/dashboards-service
+    environment:
+      - NODE_ENV=production
+      - AUTH_MODE=dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.dash.rule=PathPrefix(`/`) && !PathPrefix(`/api`)
+      - traefik.http.routers.dash.entrypoints=web
+      - traefik.http.routers.dash.priority=1
+      - traefik.http.routers.dash.service=dash
+      - traefik.http.services.dash.loadbalancer.server.port=8000
+
+  # -------- Python services (prefix stripped) --------
+  esg-service:
+    profiles: ["demo"]
+    build:
+      context: ../apps/backend/services/esg-service
+    environment: [ AUTH_MODE=dev ]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)
+      - traefik.http.routers.esg.entrypoints=web
+      - traefik.http.routers.esg.priority=10
+      - traefik.http.routers.esg.service=esg
+      - traefik.http.services.esg.loadbalancer.server.port=8000
+      - traefik.http.middlewares.esg-strip.stripprefix.prefixes=/api/esg
+      - traefik.http.routers.esg.middlewares=esg-strip
+
+  data-quality-service:
+    profiles: ["demo"]
+    build:
+      context: ../apps/backend/services/data-quality-service
+    environment: [ AUTH_MODE=dev ]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.dq.rule=PathPrefix(`/api/data-quality`)
+      - traefik.http.routers.dq.entrypoints=web
+      - traefik.http.routers.dq.priority=10
+      - traefik.http.routers.dq.service=dq
+      - traefik.http.services.dq.loadbalancer.server.port=8000
+      - traefik.http.middlewares.dq-strip.stripprefix.prefixes=/api/data-quality
+      - traefik.http.routers.dq.middlewares=dq-strip
+
+  time-series-service:
+    profiles: ["demo"]
+    build:
+      context: ../apps/backend/services/time-series-service
+    environment: [ AUTH_MODE=dev ]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.ts.rule=PathPrefix(`/api/time-series`)
+      - traefik.http.routers.ts.entrypoints=web
+      - traefik.http.routers.ts.priority=10
+      - traefik.http.routers.ts.service=ts
+      - traefik.http.services.ts.loadbalancer.server.port=8000
+      - traefik.http.middlewares.ts-strip.stripprefix.prefixes=/api/time-series
+      - traefik.http.routers.ts.middlewares=ts-strip
+
+  emission-factors-service:
+    profiles: ["demo"]
+    build:
+      context: ../apps/backend/services/emission-factors-service
+    environment: [ AUTH_MODE=dev ]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.factors.rule=PathPrefix(`/api/factors`)
+      - traefik.http.routers.factors.entrypoints=web
+      - traefik.http.routers.factors.priority=10
+      - traefik.http.routers.factors.service=factors
+      - traefik.http.services.factors.loadbalancer.server.port=8000
+      - traefik.http.middlewares.factors-strip.stripprefix.prefixes=/api/factors
+      - traefik.http.routers.factors.middlewares=factors-strip
+
+  # -------- Node services (already mount /api/*) --------
+  jobs-service:
+    profiles: ["demo"]
+    build:
+      context: ../apps/backend/services/jobs-service
+    environment:
+      - NODE_ENV=production
+      - AUTH_MODE=dev
+      - GATEWAY_BASE=http://traefik:8081
+      - DEMO_ORG=demo
+      - FALLBACK_PERIOD=2024Q4
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.jobs.rule=PathPrefix(`/api/jobs`)
+      - traefik.http.routers.jobs.entrypoints=web
+      - traefik.http.routers.jobs.priority=10
+      - traefik.http.routers.jobs.service=jobs
+      - traefik.http.services.jobs.loadbalancer.server.port=8000
+
+  report-compiler-service:
+    profiles: ["demo"]
+    build:
+      context: ../apps/backend/services/report-compiler-service
+    environment:
+      - NODE_ENV=production
+      - AUTH_MODE=dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
+      - traefik.http.routers.reports.entrypoints=web
+      - traefik.http.routers.reports.priority=10
+      - traefik.http.routers.reports.service=repsvc
+      - traefik.http.services.repsvc.loadbalancer.server.port=8000
+
+  xbrl-mapping-service:
+    profiles: ["demo"]
+    build:
+      context: ../apps/backend/services/xbrl-mapping-service
+    environment:
+      - NODE_ENV=production
+      - AUTH_MODE=dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=ct2-demo_default
+      - traefik.http.routers.xmap.rule=PathPrefix(`/api/xmap`)
+      - traefik.http.routers.xmap.entrypoints=web
+      - traefik.http.routers.xmap.priority=10
+      - traefik.http.routers.xmap.service=xmap
+      - traefik.http.services.xmap.loadbalancer.server.port=8000
+
+networks:
+  default:
+    external: true
+    name: ct2-demo_default

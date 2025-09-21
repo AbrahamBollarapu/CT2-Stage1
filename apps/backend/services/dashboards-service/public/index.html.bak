@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CT2 Demo Dashboard · Hyper</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b0f17;--panel:#0e1422;--card:#111a2b;--muted:#94a3b8;--text:#e6edf3;
+      --ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--btn:#3b82f6;--btnh:#2563eb;--line:#1e293b;
+      --chip:#0f172a;--chipbr:#1f2937;--shadow:0 10px 40px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#0a0f1a 0%, #0b0f17 100%);color:var(--text);
+      font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+    .wrap{max-width:1200px;margin:28px auto;padding:0 16px}
+    header{position:sticky;top:0;background:rgba(11,15,23,.6);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);z-index:5}
+    .bar{max-width:1200px;margin:auto;display:flex;align-items:center;gap:12px;padding:10px 16px}
+    .brand{font-weight:800;letter-spacing:.3px}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;
+      border:1px solid var(--chipbr);background:var(--chip);box-shadow:var(--shadow);font-weight:600}
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--warn)}
+    .ok .dot{background:var(--ok)} .warn .dot{background:var(--warn)} .err .dot{background:var(--err)}
+    .btn{background:var(--btn);border:none;color:#fff;padding:9px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+    .btn:hover{background:var(--btnh)} .btn.ghost{background:#0b1220;border:1px solid var(--line);color:#cbd5e1}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
+    @media (min-width: 980px){.grid{grid-template-columns:1.2fr 1fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+    h1{margin:6px 0 4px;font-size:22px} .muted{color:var(--muted)}
+    .kv{display:grid;grid-template-columns:120px 1fr;gap:8px 12px}
+    .input{background:#0b1220;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;outline:none}
+    .input:focus{border-color:#334155}
+    pre{background:#0b1220;border:1px solid var(--line);padding:12px;border-radius:10px;overflow:auto;max-height:360px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .tiny{font-size:12px;color:var(--muted)}
+    .spark{width:100%;height:46px;border:1px solid var(--line);border-radius:10px;background:#0b1220}
+    .section{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin:0 0 8px}
+    .toast{position:fixed;right:16px;bottom:16px;display:none;min-width:220px;max-width:60vw;padding:10px 12px;border-radius:10px;color:#fff;font-weight:700}
+    .toast.ok{background:rgba(34,197,94,.95)} .toast.err{background:rgba(239,68,68,.95)}
+    .kbd{padding:2px 6px;border:1px solid var(--line);border-radius:6px;background:#0b1220}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div class="brand">CogTechAI · MVP</div>
+      <span id="chip-sup" class="chip warn"><span class="dot"></span> Suppliers <span id="sla-sup" class="tiny"></span></span>
+      <span id="chip-kpi" class="chip warn"><span class="dot"></span> KPI <span id="sla-kpi" class="tiny"></span></span>
+      <div style="flex:1"></div>
+      <button class="btn ghost" id="refresh">Refresh <span class="tiny">(R)</span></button>
+      <button class="btn" id="save">Apply</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <h1>Command Console</h1>
+    <div class="muted">Live health, latency, and actions for Suppliers and KPI via Traefik.</div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="section">Settings</div>
+      <div class="kv">
+        <div>Base URL</div><input id="base" class="input" />
+        <div>Org ID</div><input id="org" class="input" value="demo" />
+        <div>API Key</div><input id="apikey" class="input" value="ct2-dev-key" />
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="pingAll">Ping All</button>
+        <button class="btn ghost" id="clearHist">Clear Telemetry</button>
+        <span class="tiny">Shortcuts: <span class="kbd">S</span> Suppliers · <span class="kbd">K</span> KPI · <span class="kbd">C</span> Compute · <span class="kbd">R</span> Refresh</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="section">Suppliers</div>
+        <div class="row" style="margin-bottom:8px">
+          <button class="btn" id="btnSupHealth">/api/suppliers/health</button>
+          <button class="btn" id="btnSupList">/api/suppliers</button>
+          <button class="btn ghost" id="curlSupList">Copy cURL</button>
+        </div>
+        <svg id="sparkSup" class="spark" viewBox="0 0 300 46" preserveAspectRatio="none"></svg>
+        <div class="tiny" id="supMeta"></div>
+        <pre id="outSup">{}</pre>
+      </div>
+
+      <div class="card">
+        <div class="section">KPI</div>
+        <div class="row" style="margin-bottom:8px">
+          <button class="btn" id="btnKpiHealth">/api/kpi/health</button>
+          <button class="btn" id="btnKpiList">/api/kpi</button>
+          <button class="btn" id="btnKpiCompute">POST /api/kpi/compute</button>
+          <button class="btn ghost" id="curlKpiCompute">Copy cURL</button>
+        </div>
+        <svg id="sparkKpi" class="spark" viewBox="0 0 300 46" preserveAspectRatio="none"></svg>
+        <div class="tiny" id="kpiMeta"></div>
+        <pre id="outKpi">{}</pre>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="section">Event Log</div>
+      <pre id="log"></pre>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ===== Core State =====
+    const $ = (id) => document.getElementById(id);
+    const state = {
+      base: window.location.origin,
+      org: 'demo',
+      apikey: 'ct2-dev-key',
+      timer: null,
+      latSup: [], latKpi: [],
+      breaker: { open:false, failures:0, openedAt:0 }
+    };
+    const MAX_POINTS = 40;
+    const SLA = { ok: 350, warn: 800 }; // ms thresholds (Tesla-ish snappy)
+
+    // ===== Utils =====
+    const saveLocal = () => localStorage.setItem('ct2.settings', JSON.stringify({ base:state.base, org:state.org, apikey:state.apikey }));
+    const loadLocal = () => { try { Object.assign(state, JSON.parse(localStorage.getItem('ct2.settings')||'{}')); } catch {} };
+    const hydrateInputs = () => { $('base').value = state.base; $('org').value = state.org; $('apikey').value = state.apikey; };
+    const toast = (msg, kind='ok') => { const t=$('toast'); t.textContent=msg; t.className='toast '+kind; t.style.display='block'; setTimeout(()=>t.style.display='none', 1800); if (window.navigator?.vibrate) navigator.vibrate(kind==='ok'?[15]:[8,30,8]); };
+    const nowIso = () => new Date().toISOString();
+
+    function curl(cmd){ navigator.clipboard.writeText(cmd); toast('cURL copied'); }
+    function setBadge(which, ms, ok) {
+      const chip = $('chip-'+which), sla = $('sla-'+which);
+      chip.classList.remove('ok','warn','err');
+      const cls = ok ? (ms<=SLA.ok?'ok':ms<=SLA.warn?'warn':'err') : 'err';
+      chip.classList.add(cls);
+      sla.textContent = ok ? `· ${ms} ms` : '· down';
+    }
+
+    // Simple circuit-breaker around fetch
+    async function jfetch(path, opts={}){
+      if(state.breaker.open){
+        const elapsed = Date.now()-state.breaker.openedAt;
+        if (elapsed < 2000) throw new Error('breaker-open');
+        // half-open trial after 2s
+      }
+      const url = state.base.replace(/\/$/, '') + path;
+      const controller = new AbortController();
+      const timeout = opts.timeout ?? 8000;
+      const to = setTimeout(()=>controller.abort(), timeout);
+      const headers = Object.assign({ 'x-api-key': state.apikey }, opts.headers||{});
+      const options = Object.assign({ signal: controller.signal, headers }, opts); delete options.timeout;
+      const t0 = performance.now();
+      try{
+        const res = await fetch(url, options);
+        const text = await res.text(); clearTimeout(to);
+        const ms = Math.max(1, Math.round(performance.now()-t0));
+        if(!res.ok) throw new Error(text || res.statusText);
+        let json; try{ json = JSON.parse(text); } catch{ json = text; }
+        state.breaker.failures = 0; state.breaker.open=false;
+        return { json, ms };
+      }catch(e){
+        clearTimeout(to);
+        state.breaker.failures++;
+        if(state.breaker.failures>=3){ state.breaker.open=true; state.breaker.openedAt=Date.now(); }
+        throw e;
+      }
+    }
+
+    // Draw sparkline (inline SVG)
+    function drawSpark(elId, arr){
+      const el = $(elId);
+      const w = 300, h = 46, pad = 6;
+      const n = arr.length || 1;
+      const max = Math.max(...arr, 1);
+      const min = Math.min(...arr, 0);
+      const range = Math.max(max-min, 1);
+      const pts = arr.map((v,i)=>{
+        const x = pad + (w-2*pad) * (i/(Math.max(n-1,1)));
+        const y = h-pad - (h-2*pad) * ((v-min)/range);
+        return [x,y];
+      });
+      const d = pts.map((p,i)=> (i? 'L':'M') + p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+      const last = arr[arr.length-1] ?? 0;
+      el.innerHTML = `
+        <path d="${d}" fill="none" stroke="url(#g)" stroke-width="2"/>
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
+        <circle cx="${pts.length?pts[pts.length-1][0].toFixed(1):0}" cy="${pts.length?pts[pts.length-1][1].toFixed(1):0}" r="2.8" fill="#22d3ee"/>
+        <text x="${w-pad}" y="${h-10}" fill="#94a3b8" font-size="10" text-anchor="end">${last} ms</text>
+      `;
+    }
+
+    function push(arr, v){ arr.push(v); if(arr.length>MAX_POINTS) arr.shift(); }
+
+    function log(line){
+      const el=$('log'); el.textContent += `[${nowIso()}] ${line}\n`; el.scrollTop=el.scrollHeight;
+    }
+
+    // ===== Actions =====
+    async function pingSup(){
+      try{
+        const { json, ms } = await jfetch('/api/suppliers/health').catch(async ()=>{
+          // fallback to list when health isn’t present
+          const { json, ms } = await jfetch(`/api/suppliers?org_id=${encodeURIComponent(state.org)}`);
+          return { json:{ ok:true, note:`list-ok (${Array.isArray(json)?json.length:0})` }, ms };
+        });
+        setBadge('sup', ms, true); $('outSup').textContent = JSON.stringify(json,null,2);
+        push(state.latSup, ms); drawSpark('sparkSup', state.latSup); $('supMeta').textContent = `Last: ${ms} ms`;
+        log(`Suppliers OK in ${ms} ms`);
+        return true;
+      }catch(e){
+        setBadge('sup', 0, false); $('outSup').textContent = String(e.message||e); push(state.latSup, 0); drawSpark('sparkSup', state.latSup);
+        log(`Suppliers FAIL: ${e.message||e}`); return false;
+      }
+    }
+
+    async function listSup(){
+      const path = `/api/suppliers?org_id=${encodeURIComponent(state.org)}`;
+      try{
+        const { json, ms } = await jfetch(path); $('outSup').textContent = JSON.stringify(json,null,2);
+        push(state.latSup, ms); drawSpark('sparkSup', state.latSup); setBadge('sup', ms, true); $('supMeta').textContent = `Last: ${ms} ms`;
+        toast('Suppliers loaded'); log(`Suppliers list ${ms} ms`);
+      }catch(e){ setBadge('sup',0,false); $('outSup').textContent=String(e.message||e); toast('Suppliers failed','err'); log(`Suppliers list FAIL: ${e.message||e}`);}
+    }
+
+    async function pingKpi(){
+      try{
+        const { json, ms } = await jfetch('/api/kpi/health');
+        setBadge('kpi', ms, true); $('outKpi').textContent = JSON.stringify(json,null,2);
+        push(state.latKpi, ms); drawSpark('sparkKpi', state.latKpi); $('kpiMeta').textContent = `Last: ${ms} ms`;
+        log(`KPI OK in ${ms} ms`);
+        return true;
+      }catch(e){
+        setBadge('kpi', 0, false); $('outKpi').textContent = String(e.message||e); push(state.latKpi, 0); drawSpark('sparkKpi', state.latKpi);
+        log(`KPI FAIL: ${e.message||e}`); return false;
+      }
+    }
+
+    async function listKpi(){
+      const path = `/api/kpi?org_id=${encodeURIComponent(state.org)}`;
+      try{
+        const { json, ms } = await jfetch(path); $('outKpi').textContent = JSON.stringify(json,null,2);
+        push(state.latKpi, ms); drawSpark('sparkKpi', state.latKpi); setBadge('kpi', ms, true); $('kpiMeta').textContent = `Last: ${ms} ms`;
+        toast('KPI listed'); log(`KPI list ${ms} ms`);
+      }catch(e){ setBadge('kpi',0,false); $('outKpi').textContent=String(e.message||e); toast('KPI list failed','err'); log(`KPI list FAIL: ${e.message||e}`); }
+    }
+
+    async function computeKpi(){
+      async function attempt(tries=0){
+        try{
+          const { json, ms } = await jfetch('/api/kpi/compute', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ org: state.org, org_id: state.org }), timeout: 15000 });
+          $('outKpi').textContent = JSON.stringify(json,null,2); push(state.latKpi, ms); drawSpark('sparkKpi', state.latKpi); setBadge('kpi', ms, true);
+          toast('KPI computed'); log(`KPI compute ${ms} ms`);
+        }catch(e){
+          if(tries<2){ const delay = 400*(2**tries); log(`compute retry in ${delay} ms`); await new Promise(r=>setTimeout(r,delay)); return attempt(tries+1); }
+          setBadge('kpi',0,false); $('outKpi').textContent=String(e.message||e); toast('KPI compute failed','err'); log(`KPI compute FAIL: ${e.message||e}`);
+        }
+      }
+      return attempt();
+    }
+
+    // ===== Wiring =====
+    function applySettings(){ state.base=$('base').value.trim()||window.location.origin; state.org=$('org').value.trim()||'demo'; state.apikey=$('apikey').value.trim()||'ct2-dev-key'; saveLocal(); log(`Settings applied: base=${state.base}, org=${state.org}`); }
+    function clearTelemetry(){ state.latSup.length=0; state.latKpi.length=0; drawSpark('sparkSup',[]); drawSpark('sparkKpi',[]); log('Telemetry cleared'); }
+
+    window.addEventListener('DOMContentLoaded', ()=>{
+      loadLocal(); hydrateInputs(); drawSpark('sparkSup',[]); drawSpark('sparkKpi',[]);
+      $('save').addEventListener('click', ()=>{ applySettings(); pingSup(); pingKpi(); });
+      $('pingAll').addEventListener('click', ()=>{ pingSup(); pingKpi(); });
+      $('clearHist').addEventListener('click', clearTelemetry);
+      $('refresh').addEventListener('click', ()=>{ pingSup(); pingKpi(); });
+
+      $('btnSupHealth').addEventListener('click', pingSup);
+      $('btnSupList').addEventListener('click', listSup);
+      $('btnKpiHealth').addEventListener('click', pingKpi);
+      $('btnKpiList').addEventListener('click', listKpi);
+      $('btnKpiCompute').addEventListener('click', computeKpi);
+
+      $('curlSupList').addEventListener('click', ()=> curl(`curl -s "${state.base.replace(/\/$/,'')}/api/suppliers?org_id=${state.org}" -H "x-api-key: ${state.apikey}"`));
+      $('curlKpiCompute').addEventListener('click', ()=> curl(`curl -s -X POST "${state.base.replace(/\/$/,'')}/api/kpi/compute" -H "x-api-key: ${state.apikey}" -H "content-type: application/json" -d "{\\"org_id\\":\\"${state.org}\\"}"`));
+
+      // keyboard shortcuts
+      window.addEventListener('keydown', (e)=>{
+        if(e.target.tagName==='INPUT'||e.metaKey||e.ctrlKey||e.altKey) return;
+        const k=e.key.toLowerCase();
+        if(k==='r'){ e.preventDefault(); pingSup(); pingKpi(); }
+        if(k==='s'){ e.preventDefault(); listSup(); }
+        if(k==='k'){ e.preventDefault(); listKpi(); }
+        if(k==='c'){ e.preventDefault(); computeKpi(); }
+      });
+
+      // initial auto cycle
+      pingSup(); pingKpi();
+      state.timer = setInterval(()=>{ pingSup(); pingKpi(); }, 15000);
+    });
+  </script>
+</body>
+</html>

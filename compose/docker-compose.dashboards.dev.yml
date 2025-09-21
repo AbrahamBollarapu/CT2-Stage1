@@ -1,0 +1,16 @@
+﻿services:
+  dashboards-service:
+    image: ct2-demo-dashboards-service
+    build:
+      context: ../apps/backend/services/dashboards-service
+      dockerfile: Dockerfile
+    volumes:
+      - ../apps/backend/services/dashboards-service/public:/app/public:ro
+    restart: unless-stopped
+    networks:
+      - ct2-demo_default
+
+networks:
+  ct2-demo_default:
+    external: true
+    name: ct2-demo_default

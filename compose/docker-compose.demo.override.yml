@@ -7,14 +7,56 @@ services:
     container_name: ct2-demo-dashboards-service-1
     image: ct2-demo-dashboards-service
     build:
-      context: ../apps/frontend/dashboards-service   # <-- resolves to D:\CT2\apps\frontend\dashboards-service
+      context: ../apps/backend/services/dashboards-service
       dockerfile: Dockerfile
     profiles: ["demo"]
     restart: unless-stopped
     networks:
-      - default
+      - ct2-demo_default
     # No labels needed; routing comes from the Traefik file provider
     # pointing to http://dashboards-service:8000
+
+  supplier-service:
+    image: "ct2-supplier-service"
+    build:
+      context: ../apps/backend  # Changed to parent directory
+      dockerfile: services/supplier-service/Dockerfile  # Added specific Dockerfile path
+    expose: ["8000"]
+    environment:
+      - "NODE_ENV=production"
+      - "AUTH_MODE=dev"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-demo_default"
+      - "traefik.http.routers.api-suppliers.rule=PathPrefix(`/api/suppliers`)"
+      - "traefik.http.routers.api-suppliers.entrypoints=web"
+      - "traefik.http.routers.api-suppliers.middlewares=api-suppliers-stripprefix"
+      - "traefik.http.services.api-suppliers.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.api-suppliers-stripprefix.stripprefix.prefixes=/api/suppliers"
+    restart: "unless-stopped"
+    profiles: ["demo","s1"]
+    networks: ["ct2-demo"]
+
+  kpi-calculation-service:
+    image: "ct2-kpi-calculation-service"
+    build:
+      context: ../apps/backend  # Changed to parent directory
+      dockerfile: services/kpi-calculation-service/Dockerfile  # Added specific Dockerfile path
+    expose: ["8000"]
+    environment:
+      - "NODE_ENV=production"
+      - "AUTH_MODE=dev"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-demo_default"
+      - "traefik.http.routers.api-kpi.rule=PathPrefix(`/api/kpi`)"
+      - "traefik.http.routers.api-kpi.entrypoints=web"
+      - "traefik.http.routers.api-kpi.middlewares=api-kpi-stripprefix"
+      - "traefik.http.services.api-kpi.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.api-kpi-stripprefix.stripprefix.prefixes=/api/kpi"
+    restart: "unless-stopped"
+    profiles: ["demo","s1"]
+    networks: ["ct2-demo"]
 
   traefik:
     # Merge into existing Traefik service (additive)

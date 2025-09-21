@@ -43,3 +43,6 @@ artifacts/
 reports/
 out/
 build/
+
+compose/traefik-routers.json
+compose/traefik-services.json

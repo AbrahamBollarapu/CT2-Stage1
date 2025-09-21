@@ -1,11 +1,11 @@
 http:
   routers:
     api-suppliers:
-      rule: "PathPrefix(`/api/suppliers`)"
-      entryPoints: [web]
-      service: suppliers-svc
+      rule: PathPrefix(`/api/suppliers`)
+      entryPoints: [ "web" ]
+      service: suppliers-service
   services:
-    suppliers-svc:
+    suppliers-service:
       loadBalancer:
         servers:
-          - url: http://suppliers-service:8000
+          - url: "http://suppliers-service:8000"

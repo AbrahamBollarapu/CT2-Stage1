@@ -1,0 +1,20 @@
+﻿version: '3.8'
+
+services:
+  traefik:
+    image: "traefik:v2.11"
+    ports:
+      - "8081:8081"
+      - "8090:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik/traefik.yml:/etc/traefik/traefik.yml:ro"
+      - "./traefik/dynamic/:/etc/traefik/dynamic/:ro"
+    restart: "unless-stopped"
+    networks:
+      - ct2-demo_default
+
+networks:
+  ct2-demo_default:
+    external: true
+    name: ct2-demo_default
