@@ -1,0 +1,22 @@
+﻿http:
+  routers:
+    api-suppliers:
+      rule: PathPrefix(`/api/suppliers`)
+      entryPoints: [ web ]
+      service: supplier-service
+    api-supplier-redirect:
+      rule: PathPrefix(`/api/supplier`)
+      entryPoints: [ web ]
+      service: supplier-service
+      middlewares: [ supplier-singular-to-plural ]
+  middlewares:
+    supplier-singular-to-plural:
+      redirectRegex:
+        regex: "^/api/supplier(.*)$"
+        replacement: "/api/suppliers$1"
+        permanent: true
+  services:
+    supplier-service:
+      loadBalancer:
+        servers:
+          - url: "http://supplier-service:8000"

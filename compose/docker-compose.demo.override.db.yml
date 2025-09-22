@@ -1,19 +1,37 @@
 ﻿services:
   evidence-db:
     image: postgres:15-alpine
-    container_name: ct2-evidence-db-1
+    container_name: ct2-evidence-db
     environment:
-      POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: evidence
+    volumes:
+      - ./sql/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - ct2-demo_default
+      - ct2_ct2-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      test: ["CMD-SHELL","pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1"]
       interval: 5s
       timeout: 3s
       retries: 20
-    volumes:
-      - ./initdb:/docker-entrypoint-initdb.d:ro   # <-- run our schema/seed
+
+  adminer:
+    image: adminer:4
+    container_name: ct2-adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: evidence-db
+    ports:
+      - "8100:8080"
     networks:
-      default:
-        aliases:
-          - db
+      - ct2-demo_default
+      - ct2_ct2-net
+    depends_on:
+      - evidence-db
+
+networks:
+  ct2-demo_default:
+    external: true
+  ct2_ct2-net:
+    external: true

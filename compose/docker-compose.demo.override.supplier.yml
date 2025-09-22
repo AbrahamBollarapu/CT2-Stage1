@@ -1,0 +1,29 @@
+﻿services:
+  supplier-service:
+    build:
+      context: ../apps/backend/services/supplier-service
+      dockerfile: Dockerfile
+    image: ct2-demo-supplier-service
+    container_name: ct2-demo-supplier-service-1
+    environment:
+      API_KEY: "ct2-dev-key"
+      PORT: "8000"
+      PGHOST: "evidence-db"
+      PGPORT: "5432"
+      PGUSER: "postgres"
+      PGPASSWORD: "postgres"
+      PGDATABASE: "evidence"
+    networks:
+      - ct2-demo_default
+      - ct2_ct2-net
+    healthcheck:
+      test: ["CMD","wget","-qO-","http://localhost:8000/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+
+networks:
+  ct2-demo_default:
+    external: true
+  ct2_ct2-net:
+    external: true
