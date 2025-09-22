@@ -1,0 +1,12 @@
+http:
+  routers:
+    api-suppliers:
+      rule: PathPrefix(`/api/suppliers`)
+      entryPoints:
+        - web
+      service: suppliers-mock
+  services:
+    suppliers-mock:
+      loadBalancer:
+        servers:
+          - url: "http://suppliers-mock-service:8000"

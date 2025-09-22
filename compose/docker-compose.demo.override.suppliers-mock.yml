@@ -1,0 +1,29 @@
+# D:\CT2\compose\docker-compose.demo.override.suppliers-mock.yml
+services:
+  suppliers-mock-service:
+    build:
+      context: ../apps/backend/services/suppliers-mock-service
+      dockerfile: Dockerfile
+    image: ct2-demo-suppliers-mock-service
+    container_name: ct2-demo-suppliers-mock-service-1
+    environment:
+      API_KEY: "ct2-dev-key"
+      PORT: "8000"
+    networks:
+      - ct2-demo_default
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "ct2-demo_default"
+      traefik.http.routers.api-suppliers.rule: "PathPrefix(`/api/suppliers`)"
+      traefik.http.routers.api-suppliers.entrypoints: "web"
+      traefik.http.routers.api-suppliers.service: "suppliers-mock"
+      traefik.http.services.suppliers-mock.loadbalancer.server.port: "8000"
+    healthcheck:
+      test: ["CMD","wget","-qO-","http://localhost:8000/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+
+networks:
+  ct2-demo_default:
+    external: true
