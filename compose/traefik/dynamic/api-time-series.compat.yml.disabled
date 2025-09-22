@@ -1,0 +1,25 @@
+http:
+  routers:
+    api-time-series-index:
+      rule: "Path(`/api/time-series`)"
+      entryPoints: [web]
+      service: time-series-svc
+      middlewares: [ts-to-points]
+      priority: 9100
+
+    api-time-series-prefix:
+      rule: "PathPrefix(`/api/time-series`)"
+      entryPoints: [web]
+      service: time-series-svc
+      priority: 9000
+
+  middlewares:
+    ts-to-points:
+      replacePath:
+        path: "/api/time-series/points"
+
+  services:
+    time-series-svc:
+      loadBalancer:
+        servers:
+          - url: "http://time-series-service:8000"

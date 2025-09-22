@@ -1,0 +1,4 @@
+services:
+  kpi-calculation-service:
+    labels:
+      - "traefik.enable=false"

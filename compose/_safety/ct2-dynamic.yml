@@ -1,0 +1,19 @@
+﻿# Serve "/" and "/health" from dashboards-service without hijacking "/api/**".
+http:
+  routers:
+    ui-root:
+      entryPoints: ["web"]
+      rule: "PathPrefix(\"/\") && !PathPrefix(\"/api\")"
+      priority: 10
+      service: dashboards-service
+    health:
+      entryPoints: ["web"]
+      rule: "Path(\"/health\")"
+      priority: 90
+      service: dashboards-service
+
+  services:
+    dashboards-service:
+      loadBalancer:
+        servers:
+          - url: "http://dashboards-service:8000"

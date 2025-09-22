@@ -1,0 +1,20 @@
+﻿http:
+  routers:
+    api-time-series-kpi:
+      rule: "PathPrefix(`/api/time-series`)"
+      entryPoints: [web]
+      service: kpi-svc
+      middlewares: [ts-to-kpi]
+      priority: 7100
+
+  middlewares:
+    ts-to-kpi:
+      replacePathRegex:
+        regex: "^/api/time-series(.*)$"
+        replacement: "/api/kpi/time-series$1"   # change to /time-series$1 if thats your internal path
+
+  services:
+    kpi-svc:
+      loadBalancer:
+        servers:
+          - url: "http://kpi-calculation-service:8000"

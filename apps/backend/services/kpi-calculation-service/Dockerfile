@@ -1,16 +1,19 @@
-# D:/CT2/apps/backend/services/kpi-calculation-service/Dockerfile
 FROM node:20-alpine
+
 WORKDIR /app
 
+# Install deps (none required, but keep pattern for lockfile if present)
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev || npm i --omit=dev
 
+# App code
 COPY server.mjs ./
 
-ENV NODE_ENV=production
-ENV PORT=8000
-ENV DEMO_API_KEY=ct2-dev-key
-ENV GW_BASE=http://traefik:80
+# Default envs — override via compose if you like
+ENV PORT=8000 \
+    PREFIX=/api/time-series \
+    AUTH_MODE=dev \
+    DEV_KEY=ct2-dev-key
 
 EXPOSE 8000
 CMD ["node", "server.mjs"]

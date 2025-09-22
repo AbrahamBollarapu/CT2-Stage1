@@ -1,0 +1,13 @@
+http:
+  routers:
+    api-time-series-pass:
+      entryPoints: [ web ]
+      rule: PathPrefix(/api/time-series)
+      priority: 9100
+      service: time-series-svc-pass
+
+  services:
+    time-series-svc-pass:
+      loadBalancer:
+        servers:
+          - url: http://time-series-service:8000

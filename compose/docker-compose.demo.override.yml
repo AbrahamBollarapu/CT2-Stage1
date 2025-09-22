@@ -40,8 +40,8 @@ services:
   kpi-calculation-service:
     image: "ct2-kpi-calculation-service"
     build:
-      context: ../apps/backend  # Changed to parent directory
-      dockerfile: services/kpi-calculation-service/Dockerfile  # Added specific Dockerfile path
+      context: ./apps/backend/services/kpi-calculation-service
+      dockerfile: Dockerfile
     expose: ["8000"]
     environment:
       - "NODE_ENV=production"
