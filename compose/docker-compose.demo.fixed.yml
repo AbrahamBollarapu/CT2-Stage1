@@ -1,0 +1,17 @@
+﻿version: '3.8'
+
+services:
+  traefik:
+    profiles: ["demo"]
+    image: "traefik:v2.11"
+    ports:
+      - "8081:8081"                  # web (apps)
+      - "8090:8080"                  # API/Dashboard (stable for your scripts)
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik/traefik.yml:/etc/traefik/traefik.yml:ro"
+      - "./traefik/dynamic/:/etc/traefik/dynamic/:ro"
+    restart: "unless-stopped"
+    networks: ["ct2-demo"]
+
+  # Other services...

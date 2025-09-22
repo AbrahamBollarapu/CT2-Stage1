@@ -1,178 +1,19 @@
+version: '3.8'
 services:
-  evidence-db:
-    image: postgres:15-alpine
-    container_name: ct2-evidence-db
-    environment:
-      POSTGRES_DB: evidence
-      POSTGRES_USER: evidence
-      POSTGRES_PASSWORD: evidence
+  traefik:
+    image: traefik:v2.11
     ports:
-      - "5432:5432"
+      - "80:80"
+      - "8090:8080"
     volumes:
-      - evidence-db-data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U evidence -d evidence || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    networks: [ct2-net]
-    restart: unless-stopped
+      - ./traefik:/etc/traefik
+    command: --api.insecure=true --providers.file.directory=/etc/traefik/dynamic
 
   suppliers-service:
-    image: node:20-alpine
-    container_name: ct2-suppliers-service
-    working_dir: /app
-    command: ["/bin/sh","-lc","if [ ! -f /app/node_modules/fastify/package.json ]; then echo 'Installing npm deps into /app/node_modules...'; npm ci || npm install; fi; exec node server.mjs"]
-    environment:
-      PORT: "8000"
-      HOST: 0.0.0.0
-      SERVICE_PREFIX: /api
-      API_KEY: ct2-dev-key
-      DISABLE_AUTH: "true"
-      PGHOST: evidence-db
-      PGUSER: evidence
-      PGPASSWORD: evidence
-      PGDATABASE: evidence
-      PGPORT: "5432"
-    volumes:
-      - ../apps/backend/services/supplier-service:/app:ro
-      - suppliers_node_modules:/app/node_modules
-    depends_on:
-      evidence-db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-demo_default
-      - traefik.http.routers.suppliers-api.rule=PathPrefix(`/api`)
-      - traefik.http.routers.suppliers-api.entrypoints=web
-      - traefik.http.routers.suppliers-api.service=suppliers-service
-      - traefik.http.services.suppliers-service.loadbalancer.server.port=8000
-      - traefik.http.routers.suppliers-health.rule=Path(`/health`)
-      - traefik.http.routers.suppliers-health.entrypoints=web
-      - traefik.http.routers.suppliers-health.service=suppliers-service
-    networks: [ct2-net, ct2-demo_default]
-    restart: unless-stopped
-
-  esg-service:
-    image: node:20-alpine
-    container_name: ct2-esg-service
-    working_dir: /app
-    command: ["/bin/sh","-lc","if [ ! -f /app/node_modules/fastify/package.json ]; then echo 'Installing npm deps into /app/node_modules...'; npm ci || npm install; fi; exec node server.mjs"]
-    environment:
-      PORT: "8000"
-      HOST: 0.0.0.0
-      SERVICE_PREFIX: /api/esg
-      API_KEY: ct2-dev-key
-      DISABLE_AUTH: "true"
-    volumes:
-      - ../apps/backend/services/esg-service:/app:ro
-      - esg_node_modules:/app/node_modules
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-demo_default
-      - traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)
-      - traefik.http.routers.esg.entrypoints=web
-      - traefik.http.routers.esg.service=esg
-      - traefik.http.services.esg.loadbalancer.server.port=8000
-      - traefik.http.middlewares.esg-strip.stripprefix.prefixes=/api/esg
-      - traefik.http.routers.esg.middlewares=esg-strip
-    networks: [ct2-net, ct2-demo_default]
-    restart: unless-stopped
-
-  data-quality-service:
-    image: node:20-alpine
-    container_name: ct2-data-quality-service
-    working_dir: /app
-    command: ["/bin/sh","-lc","if [ ! -f /app/node_modules/fastify/package.json ]; then echo 'Installing npm deps into /app/node_modules...'; npm ci || npm install; fi; exec node server.mjs"]
-    environment:
-      PORT: "8000"
-      HOST: 0.0.0.0
-      SERVICE_PREFIX: /api/data-quality
-      API_KEY: ct2-dev-key
-      DISABLE_AUTH: "true"
-    volumes:
-      - ../apps/backend/services/data-quality-service:/app:ro
-      - data_quality_node_modules:/app/node_modules
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-demo_default
-      - traefik.http.routers.dq.rule=PathPrefix(`/api/data-quality`)
-      - traefik.http.routers.dq.entrypoints=web
-      - traefik.http.routers.dq.service=dq
-      - traefik.http.services.dq.loadbalancer.server.port=8000
-      - traefik.http.middlewares.dq-strip.stripprefix.prefixes=/api/data-quality
-      - traefik.http.routers.dq.middlewares=dq-strip
-    networks: [ct2-net, ct2-demo_default]
-    restart: unless-stopped
-
-  report-compiler-service:
-    build:
-      context: ../apps/backend/services/report-compiler-service
-      dockerfile: Dockerfile
-    container_name: ct2-demo-report-compiler
-    environment:
-      - PORT=8000
-      - API_KEY=ct2-dev-key
-      - ARTIFACT_DIR=/data/artifacts
-      - REPORTS_FALLBACK=true
-      # leave ROUTE_PREFIX unset because Traefik strips /api/reports
-    volumes:
-      - ../apps/backend/services/report-compiler-service/assets:/app/assets:ro
-      - reports-artifacts:/data/artifacts
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=ct2-demo_default
-      - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
-      - traefik.http.routers.reports.entrypoints=web
-      - traefik.http.middlewares.reports-strip.stripprefix.prefixes=/api/reports
-      - traefik.http.routers.reports.middlewares=reports-strip
-      - traefik.http.services.reports.loadbalancer.server.port=8000
-    networks: [ct2-net, ct2-demo_default]
-    restart: unless-stopped
-
-  evidence-store:
-    image: minio/minio:RELEASE.2024-08-17T01-24-54Z
-    container_name: ct2-evidence-store
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin123
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio-data:/data
-      - minio-config:/root/.minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    networks: [ct2-net]
-    restart: unless-stopped
+    image: ct2-suppliers-service
+    networks:
+      - ct2-network
 
 networks:
-  ct2-net: {}
-  # Use the Traefik network from the ct2-demo stack
-  ct2-demo_default:
-    external: true
-
-volumes:
-  evidence-db-data: {}
-  minio-data: {}
-  minio-config: {}
-  suppliers_node_modules: {}
-  esg_node_modules: {}
-  data_quality_node_modules: {}
-  reports-artifacts: {}
+  ct2-network:
+    driver: bridge

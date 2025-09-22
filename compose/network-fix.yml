@@ -1,0 +1,4 @@
+﻿networks:
+  default:
+    external: true
+    name: ct2-demo_default

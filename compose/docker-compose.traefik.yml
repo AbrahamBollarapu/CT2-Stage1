@@ -1,34 +1,74 @@
 # docker-compose.traefik.yml
-services:
-  traefik:
-    image: traefik:v2.10
-    container_name: ct2-traefik-1
-    command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=ct2-net
-      - --entrypoints.web.address=:80
-      - --entrypoints.admin.address=:8090
-      - --api.dashboard=true
-      - --api.insecure=false
-    ports:
-      - "80:80"     # web: your APIs (http://localhost/…)
-      - "8090:8090" # admin: dashboard + /api (http://localhost:8090/)
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.traefik-admin.rule=PathPrefix(`/dashboard`) || PathPrefix(`/api`)
-      - traefik.http.routers.traefik-admin.entrypoints=admin
-      - traefik.http.routers.traefik-admin.service=api@internal
-    networks:
-      - ct2-default
-      - ct2-net
-
 networks:
-  ct2-default:
+  ct2_default:
     external: true
     name: ct2_default
-  ct2-net:
+  ct2_ct2-net:
     external: true
-    name: ct2-net
+    name: ct2_ct2-net
+  ct2-demo_default:
+    external: true
+    name: ct2-demo_default
+
+services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      - "--entrypoints.web.address=:80"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+    ports:
+      - "8081:80"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - ct2_default
+      - ct2_ct2-net
+      - ct2-demo_default
+
+  # Add Traefik labels to route existing containers.
+  # (Assumes each service listens on 8000 in-container; change if different.)
+  suppliers-service:
+    networks: [ct2_default, ct2_ct2-net, ct2-demo_default]
+    labels:
+      - "traefik.enable=true"
+
+      # Strip only for health, so /api/suppliers/health -> /health
+      - "traefik.http.middlewares.suppliers-strip.stripprefix.prefixes=/api/suppliers"
+
+      # Health route
+      - "traefik.http.routers.suppliers-health.rule=Path(`/api/suppliers/health`)"
+      - "traefik.http.routers.suppliers-health.entrypoints=web"
+      - "traefik.http.routers.suppliers-health.middlewares=suppliers-strip"
+      - "traefik.http.routers.suppliers-health.service=suppliers-svc"
+
+      # API route — pass-through, NO strip (app already serves /api/suppliers)
+      - "traefik.http.routers.suppliers-api.rule=PathPrefix(`/api/suppliers`)"
+      - "traefik.http.routers.suppliers-api.entrypoints=web"
+      - "traefik.http.routers.suppliers-api.service=suppliers-svc"
+
+      # Backend port
+      - "traefik.http.services.suppliers-svc.loadbalancer.server.port=8000"
+  esg-service:
+    networks: [ct2_default, ct2_ct2-net, ct2-demo_default]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.esg.rule=PathPrefix(`/api/esg`)"
+      - "traefik.http.routers.esg.entrypoints=web"
+      - "traefik.http.services.esg.loadbalancer.server.port=8000"
+
+  data-quality-service:
+    networks: [ct2_default, ct2_ct2-net, ct2-demo_default]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dq.rule=PathPrefix(`/api/data-quality`)"
+      - "traefik.http.routers.dq.entrypoints=web"
+      - "traefik.http.services.dq.loadbalancer.server.port=8000"
+
+  report-compiler-service:
+    networks: [ct2_default, ct2_ct2-net, ct2-demo_default]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.report.rule=PathPrefix(`/api/reports`)"
+      - "traefik.http.routers.report.entrypoints=web"
+      - "traefik.http.services.report.loadbalancer.server.port=8000"

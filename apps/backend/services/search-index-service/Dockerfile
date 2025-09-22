@@ -1,15 +1,13 @@
+# D:/CT2/apps/backend/services/search-index-service/Dockerfile
 FROM node:20-alpine
+WORKDIR /app
 
-WORKDIR /app/services/search-index-service
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev || npm i --omit=dev
 
-COPY services/search-index-service/package*.json ./
-RUN if [ -f package-lock.json ]; then (npm install --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund); else npm install --omit=dev --no-audit --no-fund; fi
+COPY server.mjs ./
 
-COPY _shared /app/_shared
-COPY services/search-index-service/ .
-
-ENV NODE_ENV=production \
-    PORT=8000
-
+ENV NODE_ENV=production
+ENV PORT=8000
 EXPOSE 8000
-CMD ["node","server.js"]
+CMD ["node", "server.mjs"]

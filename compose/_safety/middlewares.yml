@@ -1,0 +1,7 @@
+http:
+  middlewares:
+    strip-api:
+      stripPrefix:
+        prefixes:
+          - "/api"
+        forceSlash: true

@@ -1,0 +1,19 @@
+services:
+  suppliers-service:
+    image: ct2-suppliers-service
+    container_name: ct2-suppliers-service-1
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    expose:
+      - "8000"      # for Traefik on the same network
+    restart: unless-stopped
+    depends_on:
+      evidence-db:
+        condition: service_healthy
+    networks:
+      - default

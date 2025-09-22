@@ -1,0 +1,34 @@
+﻿version: "3.9"
+
+services:
+  time-series-service:
+    image: ct2-demo-time-series-service
+    build:
+      context: ../apps/backend/services/time-series-service
+      dockerfile: Dockerfile
+    container_name: ct2-time-series-service-1
+    environment:
+      NODE_ENV: development
+      PORT: "8000"
+      PREFIX: "/api/time-series"
+      AUTH_MODE: "dev"
+      DEV_KEY: "ct2-dev-key"
+    expose:
+      - "8000"               # visible to Traefik on the same Docker network
+    ports:
+      - "8025:8000"          # optional: direct local testing (http://localhost:8025)
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    labels:
+      - traefik.enable=false # prevent Docker provider from auto-creating api-ts@docker
+    networks:
+      - default
+
+networks:
+  default:
+    name: ct2-demo_default   # attach to the existing network Traefik is on
+    external: true

@@ -1,3 +1,13 @@
-﻿{ "name": "jobs-service", "type": "module",
-  "scripts": { "start:prod": "node server.mjs" },
-  "dependencies": { "express": "^4.19.2", "node-fetch": "^3.3.2" } }
+﻿{
+  "name": "jobs-service",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.mjs",
+    "start:prod": "node server.mjs"
+  },
+  "dependencies": {
+    "fastify": "^4.28.1"
+  }
+}

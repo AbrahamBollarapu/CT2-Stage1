@@ -1,18 +1,19 @@
-FROM python:3.11-slim
+FROM node:20-alpine
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+WORKDIR /app
 
-WORKDIR /app/services/kpi-calculation-service
+# Install deps (none required, but keep pattern for lockfile if present)
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev || npm i --omit=dev
 
-COPY services/kpi-calculation-service/requirements.txt /app/services/kpi-calculation-service/requirements.txt
-RUN pip install --no-cache-dir -r /app/services/kpi-calculation-service/requirements.txt
+# App code
+COPY server.mjs ./
 
-COPY _shared /app/_shared
-ENV PYTHONPATH=/app
+# Default envs — override via compose if you like
+ENV PORT=8000 \
+    PREFIX=/api/time-series \
+    AUTH_MODE=dev \
+    DEV_KEY=ct2-dev-key
 
-COPY services/kpi-calculation-service/ .
-
-ENV PORT=8000
 EXPOSE 8000
-CMD ["uvicorn","main:app","--host","0.0.0.0","--port","8000"]
+CMD ["node", "server.mjs"]

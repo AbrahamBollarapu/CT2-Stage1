@@ -1,0 +1,7 @@
+﻿services:
+  time-series-service:
+    labels:
+      # Make the docker router never match:
+      - 'traefik.http.routers.api-ts.rule=PathPrefix(`/api/ts-disabled`)'
+      - 'traefik.http.routers.api-ts.middlewares='
+

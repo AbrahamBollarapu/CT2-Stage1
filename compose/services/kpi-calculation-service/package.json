@@ -1,0 +1,9 @@
+﻿{
+  "name": "kpi-calculation-service",
+  "version": "1.0.0",
+  "description": "KPI Calculation Service",
+  "main": "kpi.server.mjs",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

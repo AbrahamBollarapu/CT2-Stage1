@@ -1,0 +1,12 @@
+﻿http:
+  routers:
+    api-ts-full:
+      rule: "PathPrefix(`/api/time-series`)"
+      entryPoints: ["web"]
+      priority: 9200
+      service: ts-svc
+  services:
+    ts-svc:
+      loadBalancer:
+        servers:
+          - url: "http://time-series-service:8000"

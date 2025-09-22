@@ -1,0 +1,32 @@
+﻿version: "3.9"
+
+services:
+  time-series-service:
+    image: ct2-demo-time-series-service
+    build:
+      context: ./apps/backend/services/time-series-service
+      dockerfile: Dockerfile
+    container_name: ct2-time-series-service-1
+    environment:
+      NODE_ENV: development
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - default
+    labels:
+     - "traefik.enable=true"
+     - "traefik.http.routers.api-ts.rule=PathPrefix(`/api/time-series`)"
+     - "traefik.http.routers.api-ts.entrypoints=web"
+     - "traefik.http.routers.api-ts.priority=9100"
+     - "traefik.http.services.api-ts.loadbalancer.server.port=8000"
+
+networks:
+  default:
+    name: ct2-demo_default   # attach to the existing network Traefik is on
+    external: true

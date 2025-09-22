@@ -1,0 +1,13 @@
+http:
+  routers:
+    api-reports:
+      rule: PathPrefix(`/api/reports`)
+      entryPoints:
+        - web
+      service: reports-service
+
+  services:
+    reports-service:
+      loadBalancer:
+        servers:
+          - url: "http://report-compiler-service:8000"

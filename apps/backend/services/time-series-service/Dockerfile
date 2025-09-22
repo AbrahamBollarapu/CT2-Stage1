@@ -1,17 +1,16 @@
-﻿FROM python:3.11-slim
-
+﻿# syntax=docker/dockerfile:1
+FROM node:20-alpine
 WORKDIR /app
 
-# System deps for pyarrow wheels (slim image is fine)
-RUN pip install --no-cache-dir fastapi uvicorn pydantic pandas pyarrow
+# Install deps (robust if no package-lock.json)
+COPY package*.json ./
+RUN npm ci --omit=dev || npm install --omit=dev
 
-# Copy app
-COPY app/main.py ./main.py
-COPY app/storage.py ./storage.py
+# Copy source
+COPY . .
 
-# Data dir for Parquet files
-ENV TS_DATA_DIR=/data
-RUN mkdir -p /data
-
+# Ensure the server binds 0.0.0.0:8000
 EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Adjust entry if not server.mjs (server.js / dist/server.js)
+CMD ["node","server.mjs"]

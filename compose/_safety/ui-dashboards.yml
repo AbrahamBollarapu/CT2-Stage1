@@ -1,0 +1,12 @@
+﻿http:
+  routers:
+    ui-root:
+      rule: "PathPrefix(`/`) && !PathPrefix(`/api`)"
+      entryPoints: ["web"]   # your entrypoint name; keep as in traefik.yml
+      service: ui-dashboards
+      priority: 5000
+  services:
+    ui-dashboards:
+      loadBalancer:
+        servers:
+          - url: "http://dashboards-service:8000"

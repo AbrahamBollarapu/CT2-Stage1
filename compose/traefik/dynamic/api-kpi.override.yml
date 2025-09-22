@@ -1,0 +1,12 @@
+﻿http:
+  routers:
+    api-kpi-full:
+      rule: "PathPrefix(`/api/kpi`)"
+      entryPoints: ["web"]
+      priority: 9100
+      service: kpi-svc
+  services:
+    kpi-svc:
+      loadBalancer:
+        servers:
+          - url: "http://kpi-calculation-service:8000"

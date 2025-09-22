@@ -1,0 +1,15 @@
+# Route /api/supplier* -> supplier-service:8000, stripping only /api
+http:
+  routers:
+    api-supplier:
+      rule: "PathPrefix(`/api/suppliers`)"
+      entryPoints: [web]
+      service: supplier-svc
+      middlewares:
+        - strip-api
+      priority: 1
+  services:
+    supplier-svc:
+      loadBalancer:
+        servers:
+          - url: "http://supplier-service:8000"

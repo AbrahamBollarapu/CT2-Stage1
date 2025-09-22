@@ -1,0 +1,52 @@
+services:
+  evidence-db:
+    image: postgres:15-alpine
+    container_name: ct2-evidence-db-1
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    networks:
+      - ct2-demo_default
+
+  suppliers-service:
+    build:
+      context: ./services/suppliers-service
+      dockerfile: Dockerfile
+    image: ct2-suppliers-service
+    container_name: ct2-suppliers-service-1
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@evidence-db:5432/postgres
+      PGHOST: evidence-db
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      SERVICE_PREFIX: /api
+    expose:
+      - "8000"
+    restart: unless-stopped
+    depends_on:
+      evidence-db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=ct2-demo_default"
+      - "traefik.http.routers.api-suppliers.rule=PathPrefix(`/api/suppliers`)"
+      - "traefik.http.routers.api-suppliers.entrypoints=web"
+      - "traefik.enable=false"
+    networks:
+      - ct2-demo_default
+
+networks:
+  ct2-demo_default:
+    external: true
+    name: ct2-demo_default
+

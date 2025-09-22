@@ -1,45 +1,161 @@
-// /app/server.mjs — kpi-calculation-service (pure Node)
+// time-series-service (robust paths + GET /api/time-series)
+// Supports ALL of these (with or without /api strip):
+//   GET  /api/time-series?org_id=...&k=throughput[&unit=count]
+//   GET  /api/time-series/points?meter=...&unit=...&from=...&to=...
+//   POST /api/time-series/points  { org_id, meter, unit, points:[{ts,value}], mode?:upsert|replace }
+//   POST /api/time-series/ingest  (alias of POST /points)
+// Also accepts the same shapes under "/time-series" and at root ("/points","/ingest") for maximum Traefik flexibility.
+
 import { createServer } from "node:http";
 import { URL } from "node:url";
 
-const PORT = Number(process.env.PORT || 8000);
-const PREFIX = (process.env.PREFIX || "/api/kpi").replace(/\/+$/, "");
+const PORT      = Number(process.env.PORT || 8000);
+const PREFIX    = (process.env.PREFIX || "/api/time-series").replace(/\/+$/, "");
+const AUTH_MODE = (process.env.AUTH_MODE || "dev").toLowerCase();  // dev | none
+const DEV_KEY   = process.env.DEV_KEY || "ct2-dev-key";
 
-function sendJSON(res, code, obj) {
+// key -> [{ts, value}]
+const store = new Map(); // `${org_id}/${meter}/${unit}` -> array
+
+// ---------- utils ----------
+const sendJSON = (res, code, obj) => {
   const body = Buffer.from(JSON.stringify(obj));
-  res.writeHead(code, {
-    "content-type": "application/json; charset=utf-8",
-    "content-length": String(body.length),
-  });
+  res.writeHead(code, { "content-type": "application/json; charset=utf-8", "content-length": String(body.length) });
   res.end(body);
+};
+const parseBody = req => new Promise((resolve, reject) => {
+  const chunks = []; req.on("data", c => chunks.push(c));
+  req.on("end", () => { if (!chunks.length) return resolve({}); try {
+    resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+  } catch (e) { reject(e); }});
+  req.on("error", reject);
+});
+const okAuth = req => AUTH_MODE === "none" || (AUTH_MODE === "dev" && String(req.headers["x-api-key"] || "") === DEV_KEY);
+
+// Accept both canonical names and compat query keys (k/u)
+function mergeInputs(url, body) {
+  const q = Object.fromEntries(url.searchParams.entries());
+  const out = {
+    org_id: body.org_id || q.org_id || "demo",
+    meter:  body.meter  || q.meter  || q.k || null,
+    unit:   body.unit   || q.unit   || q.u || "count",
+    from:   body.from   || q.from   || null,
+    to:     body.to     || q.to     || null,
+    mode:  (body.mode   || q.mode   || "upsert").toLowerCase()
+  };
+  return out;
+}
+const keyOf = x => `${x.org_id}/${x.meter}/${x.unit}`;
+const inRange = (tsISO, from, to) => {
+  const t = Date.parse(tsISO); if (Number.isNaN(t)) return false;
+  if (from && t < Date.parse(from + "T00:00:00Z")) return false;
+  if (to   && t > Date.parse(to   + "T23:59:59Z")) return false;
+  return true;
+};
+function normalizePoints(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(p => ({ ts: new Date(p.ts).toISOString(), value: Number(p.value) }))
+            .filter(p => !Number.isNaN(Date.parse(p.ts)) && Number.isFinite(p.value));
 }
 
-const server = createServer((req, res) => {
+// Path matcher that tolerates multiple prefixes:
+// - "", PREFIX (e.g. "/api/time-series"), "/time-series", "/api/kpi/time-series"
+const PREFIXES = Array.from(new Set([
+  "", PREFIX.replace(/\/+$/, ""),
+  "/time-series",
+  "/api/kpi/time-series"
+]));
+const match = (path, suffix = "") => {
+  suffix = suffix.replace(/^\/+/, "");
+  for (const base of PREFIXES) {
+    const want = (base + "/" + suffix).replace(/\/+$/, "") || "/";
+    const have = path.replace(/\/+$/, "") || "/";
+    if (have === want) return true;
+  }
+  return false;
+};
+
+// ---------- core ----------
+function getPoints(inp) {
+  const k = keyOf(inp); const all = store.get(k) || [];
+  return (inp.from || inp.to) ? all.filter(p => inRange(p.ts, inp.from, inp.to)) : all;
+}
+function upsertPoints(inp, pts) {
+  const k = keyOf(inp); const cur = store.get(k) || [];
+  const idx = new Map(cur.map(p => [p.ts, p.value]));
+  for (const p of pts) idx.set(p.ts, p.value);
+  const merged = Array.from(idx, ([ts, value]) => ({ ts, value })).sort((a,b)=>a.ts.localeCompare(b.ts));
+  store.set(k, merged); return merged.length;
+}
+function replacePoints(inp, pts) {
+  const k = keyOf(inp); const cur = store.get(k) || [];
+  const kept = (inp.from || inp.to) ? cur.filter(p => !inRange(p.ts, inp.from, inp.to)) : [];
+  const merged = kept.concat(pts).sort((a,b)=>a.ts.localeCompare(b.ts));
+  store.set(k, merged); return merged.length;
+}
+
+// ---------- server ----------
+const server = createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
-  const p = url.pathname;
+  const p = url.pathname.replace(/\/+$/, "") || "/";
 
-  // Health (root + namespaced)
-  if (req.method === "GET" && (p === "/health" || p === `${PREFIX}/health`)) {
-    return sendJSON(res, 200, { ok: true, service: "kpi" });
+  // Health (root & namespaced)
+  if (req.method === "GET" && (match(p, "health") || p === "/health")) {
+    return sendJSON(res, 200, { ok: true, service: "time-series" });
   }
 
-  // GET /energy (root + namespaced) — demo stub returning 200
-  if (req.method === "GET" && (p === "/energy" || p === `${PREFIX}/energy`)) {
-    const org_id = url.searchParams.get("org_id") || "demo";
-    const meter  = url.searchParams.get("meter")  || "grid_kwh";
-    const unit   = url.searchParams.get("unit")   || "kWh";
-    const from   = url.searchParams.get("from")   || "";
-    const to     = url.searchParams.get("to")     || "";
-    return sendJSON(res, 200, {
-      ok: true,
-      org_id, meter, unit, from, to,
-      totals: { energy_kWh: 239.3 } // just a stub value for demo
-    });
+  // NEW: GET at the collection root to satisfy /api/time-series?k=...
+  if (req.method === "GET" && (match(p, "") && p !== "/")) {
+    const inp = mergeInputs(url, {});
+    if (!inp.meter) return sendJSON(res, 400, { ok: false, error: "meter (or k) required" });
+    return sendJSON(res, 200, { ok: true, meter: inp.meter, unit: inp.unit, points: getPoints(inp) });
   }
 
-  return sendJSON(res, 404, { ok:false, error:"not_found", path:p });
+  // GET /points (root & namespaced prefixes)
+  if (req.method === "GET" && (match(p, "points") || p === "/points")) {
+    const inp = mergeInputs(url, {});
+    if (!inp.meter || !inp.unit) return sendJSON(res, 400, { ok: false, error: "meter, unit required" });
+    return sendJSON(res, 200, { ok: true, meter: inp.meter, unit: inp.unit, points: getPoints(inp) });
+  }
+
+  // POST /points (root & namespaced)
+  if (req.method === "POST" && (match(p, "points") || p === "/points")) {
+    if (!okAuth(req)) return sendJSON(res, 401, { ok: false, error: "unauthorized" });
+    try {
+      const body = await parseBody(req);
+      const inp = mergeInputs(url, body);
+      const pts = normalizePoints(body?.points);
+      if (!inp.meter || !inp.unit || !pts.length) {
+        return sendJSON(res, 400, { ok: false, error: "meter, unit, points[] required" });
+      }
+      const total = inp.mode === "replace" ? replacePoints(inp, pts) : upsertPoints(inp, pts);
+      return sendJSON(res, 200, { ok: true, mode: inp.mode, meter: inp.meter, unit: inp.unit, count: pts.length, total });
+    } catch (e) {
+      return sendJSON(res, 400, { ok: false, error: "bad_request", details: String(e?.message || e) });
+    }
+  }
+
+  // POST /ingest (alias to POST /points)
+  if (req.method === "POST" && (match(p, "ingest") || p === "/ingest")) {
+    if (!okAuth(req)) return sendJSON(res, 401, { ok: false, error: "unauthorized" });
+    try {
+      const body = await parseBody(req);
+      const inp = mergeInputs(url, body);
+      const pts = normalizePoints(body?.points);
+      if (!inp.meter || !inp.unit || !pts.length) {
+        return sendJSON(res, 400, { ok: false, error: "meter, unit, points[] required" });
+      }
+      const total = inp.mode === "replace" ? replacePoints(inp, pts) : upsertPoints(inp, pts);
+      return sendJSON(res, 200, { ok: true, compat: "ingest", mode: inp.mode, meter: inp.meter, unit: inp.unit, count: pts.length, total });
+    } catch (e) {
+      return sendJSON(res, 400, { ok: false, error: "bad_request", details: String(e?.message || e) });
+    }
+  }
+
+  // Fallback
+  return sendJSON(res, 404, { ok: false, error: "not_found", path: p });
 });
 
-server.listen(PORT, "0.0.0.0", () =>
-  console.log(`[kpi] listening :${PORT} (PREFIX=${PREFIX})`)
-);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`[time-series] :${PORT} (PREFIX=${PREFIX}, AUTH_MODE=${AUTH_MODE})`);
+});

@@ -1,0 +1,15 @@
+
+# docker-compose.demo.override.frontend.yml
+services:
+  frontend:
+    build:
+      context: ../apps/frontend
+    image: ct2-demo-frontend
+    profiles: ["demo"]
+    environment:
+      - VITE_API_BASE=/api
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
