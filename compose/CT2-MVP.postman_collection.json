@@ -1,0 +1,98 @@
+{
+  "info": {
+    "name": "CT2 MVP (S1) — Local",
+    "_postman_id": "8b2ad3f9-6c1b-4a9e-9f2f-ct2mvp-local",
+    "description": "Health checks and core demo APIs for local Traefik entrypoint.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "KPI /health",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-api-key", "value": "ct2-dev-key" }],
+        "url": { "raw": "http://localhost:8081/api/kpi/health", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api","kpi","health"] }
+      }
+    },
+    {
+      "name": "KPI /compute",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-api-key", "value": "ct2-dev-key" }],
+        "url": { "raw": "http://localhost:8081/api/kpi?org_id=test-org", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api","kpi"], "query": [{ "key": "org_id", "value": "test-org" }] }
+      }
+    },
+    {
+      "name": "TS /health",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-api-key", "value": "ct2-dev-key" }],
+        "url": { "raw": "http://localhost:8081/api/time-series/health", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api","time-series","health"] }
+      }
+    },
+    {
+      "name": "TS write points (throughput)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "x-api-key", "value": "ct2-dev-key" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"org_id\": \"test-org\",\n  \"meter\": \"throughput\",\n  \"unit\": \"count\",\n  \"points\": [\n    { \"ts\": \"{{now_iso}}\", \"value\": 12 },\n    { \"ts\": \"{{now_minus_1h}}\", \"value\": 10 }\n  ]\n}"
+        },
+        "url": { "raw": "http://localhost:8081/api/time-series/points", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api","time-series","points"] }
+      }
+    },
+    {
+      "name": "TS read points (7d)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-api-key", "value": "ct2-dev-key" }],
+        "url": {
+          "raw": "http://localhost:8081/api/time-series/points?org_id=test-org&meter=throughput&unit=count&from={{from_7d}}&to={{now_iso}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8081",
+          "path": ["api","time-series","points"],
+          "query": [
+            { "key": "org_id", "value": "test-org" },
+            { "key": "meter", "value": "throughput" },
+            { "key": "unit", "value": "count" },
+            { "key": "from", "value": "{{from_7d}}" },
+            { "key": "to", "value": "{{now_iso}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Suppliers list",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-api-key", "value": "ct2-dev-key" }],
+        "url": {
+          "raw": "http://localhost:8081/api/suppliers?org_id=test-org",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8081",
+          "path": ["api","suppliers"],
+          "query": [{ "key": "org_id", "value": "test-org" }]
+        }
+      }
+    },
+    {
+      "name": "Suppliers detail (id=1)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-api-key", "value": "ct2-dev-key" }],
+        "url": { "raw": "http://localhost:8081/api/suppliers/1", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["api","suppliers","1"] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "now_iso", "value": "{{$isoTimestamp}}" },
+    { "key": "now_minus_1h", "value": "{{$isoTimestamp}}", "description": "Adjust manually or via a script as needed" },
+    { "key": "from_7d", "value": "{{$isoTimestamp}}" }
+  ]
+}
