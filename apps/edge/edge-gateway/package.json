@@ -1,0 +1,11 @@
+{
+  "name": "ct2-edge-gateway",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "express": "^4.19.2",
+    "mqtt": "^5.3.4"
+  }
+}

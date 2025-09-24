@@ -1,0 +1,19 @@
+http:
+  routers:
+    api-edge-ingest-fix:
+      entryPoints: ["web"]                           # :8081
+      rule: Path(`/api/edge/ingest`) && Method(`POST`)
+      service: edge-svc-8001
+      middlewares: ["edge-ingest-rewrite"]
+      priority: 24000                                # > 23000 so it wins
+
+  middlewares:
+    edge-ingest-rewrite:
+      replacePath:
+        path: "/ingest"
+
+  services:
+    edge-svc-8001:
+      loadBalancer:
+        servers:
+          - url: "http://edge-gateway:8001"

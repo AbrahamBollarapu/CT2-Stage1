@@ -1,0 +1,26 @@
+http:
+  routers:
+    api-edge-ingest:
+      entryPoints: ["web"]
+      rule: Path(`/api/edge/ingest`) && Method(`POST`)
+      priority: 22000
+      middlewares:
+        - edge-ingest-rewrite
+        - edge-ratelimit
+      service: edge8000-svc
+
+  services:
+    edge8000-svc:
+      loadBalancer:
+        passHostHeader: false
+        servers:
+          - url: "http://edge-gateway:8000"
+
+  middlewares:
+    edge-ingest-rewrite:
+      replacePath:
+        path: "/ingest"
+    edge-ratelimit:
+      rateLimit:
+        average: 5
+        burst: 10

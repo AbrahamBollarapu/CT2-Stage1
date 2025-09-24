@@ -1,0 +1,5 @@
+﻿services:
+  time-series-service:
+    environment:
+      AUTH_MODE: dev
+      DEV_KEY: ct2-dev-key

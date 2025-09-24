@@ -1,3 +1,25 @@
-﻿{ "name":"dashboards-service","type":"module",
-  "scripts":{ "start:prod":"node server.mjs" },
-  "dependencies":{ "express":"^4.19.2" } }
+{
+  "name": "dashboards-service",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --strictPort --port 5173",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.6.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.23",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
+  }
+}

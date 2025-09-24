@@ -1,0 +1,4 @@
+services:
+  edge-gateway:
+    environment:
+      API_KEY: "ct2-dev-key"

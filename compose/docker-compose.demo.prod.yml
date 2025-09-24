@@ -1,0 +1,138 @@
+# Production overlay: HTTPS on demo.yourdomain.com with Let's Encrypt (TLS-ALPN)
+# Applies TLS + redirects and sets host-based routing rules for UI and key APIs.
+# Usage:
+#   docker compose `
+#     -f docker-compose.demo.yml `
+#     -f docker-compose.demo.override.yml `
+#     -f docker-compose.demo.override.db.yml `
+#     -f docker-compose.demo.prod.yml `
+#     up -d --build
+
+services:
+  traefik:
+    command:
+      - "--entrypoints.web.address=:8081"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:8443"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--api.dashboard=true"
+      # ACME (Let's Encrypt)
+      - "--certificatesresolvers.ct2.acme.tlschallenge=true"
+      - "--certificatesresolvers.ct2.acme.email=admin@yourdomain.com"
+      - "--certificatesresolvers.ct2.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "8085:8081"  # HTTP (will auto-redirect to 8443)
+      - "8443:8443"  # HTTPS
+      - "8090:8080"  # Traefik admin/dashboard
+    volumes:
+      - ./traefik/dynamic:/etc/traefik/dynamic
+      - traefik_letsencrypt:/letsencrypt
+
+  # === UI ===
+  dashboards-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dash.rule=Host(`demo.yourdomain.com`)"
+      - "traefik.http.routers.dash.entrypoints=websecure"
+      - "traefik.http.routers.dash.tls.certresolver=ct2"
+      - "traefik.http.services.dash.loadbalancer.server.port=8000"
+      # Optional HSTS
+      - "traefik.http.routers.dash.middlewares=hsts@file"
+
+  # === APIs (add/adjust as needed) ===
+
+  kpi-calculation-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kpi.rule=Host(`demo.yourdomain.com`) && PathPrefix(`/api/kpi`)"
+      - "traefik.http.routers.kpi.entrypoints=websecure"
+      - "traefik.http.routers.kpi.tls.certresolver=ct2"
+      - "traefik.http.services.kpi.loadbalancer.server.port=8000"
+      - "traefik.http.routers.kpi.middlewares=hsts@file"
+
+  time-series-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ts.rule=Host(`demo.yourdomain.com`) && (PathPrefix(`/api/time-series`) || PathPrefix(`/api/edge`))"
+      - "traefik.http.routers.ts.entrypoints=websecure"
+      - "traefik.http.routers.ts.tls.certresolver=ct2"
+      - "traefik.http.services.ts.loadbalancer.server.port=8000"
+      - "traefik.http.routers.ts.middlewares=hsts@file"
+
+  edge-gateway:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.edge.rule=Host(`demo.yourdomain.com`) && PathPrefix(`/api/edge`)"
+      - "traefik.http.routers.edge.entrypoints=websecure"
+      - "traefik.http.routers.edge.tls.certresolver=ct2"
+      - "traefik.http.services.edge.loadbalancer.server.port=8000"
+      - "traefik.http.routers.edge.middlewares=hsts@file"
+
+  suppliers-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sup.rule=Host(`demo.yourdomain.com`) && PathPrefix(`/api/suppliers`)"
+      - "traefik.http.routers.sup.entrypoints=websecure"
+      - "traefik.http.routers.sup.tls.certresolver=ct2"
+      - "traefik.http.services.sup.loadbalancer.server.port=8000"
+      - "traefik.http.routers.sup.middlewares=hsts@file"
+
+  esg-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.esg.rule=Host(`demo.yourdomain.com`) && PathPrefix(`/api/esg`)"
+      - "traefik.http.routers.esg.entrypoints=websecure"
+      - "traefik.http.routers.esg.tls.certresolver=ct2"
+      - "traefik.http.services.esg.loadbalancer.server.port=8000"
+      - "traefik.http.routers.esg.middlewares=hsts@file"
+
+  emission-factors-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.factors.rule=Host(`demo.yourdomain.com`) && PathPrefix(`/api/emission-factors`)"
+      - "traefik.http.routers.factors.entrypoints=websecure"
+      - "traefik.http.routers.factors.tls.certresolver=ct2"
+      - "traefik.http.services.factors.loadbalancer.server.port=8000"
+      - "traefik.http.routers.factors.middlewares=hsts@file"
+
+  data-quality-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dq.rule=Host(`demo.yourdomain.com`) && PathPrefix(`/api/data-quality`)"
+      - "traefik.http.routers.dq.entrypoints=websecure"
+      - "traefik.http.routers.dq.tls.certresolver=ct2"
+      - "traefik.http.services.dq.loadbalancer.server.port=8000"
+      - "traefik.http.routers.dq.middlewares=hsts@file"
+
+  jobs-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jobs.rule=Host(`demo.yourdomain.com`) && PathPrefix(`/api/jobs`)"
+      - "traefik.http.routers.jobs.entrypoints=websecure"
+      - "traefik.http.routers.jobs.tls.certresolver=ct2"
+      - "traefik.http.services.jobs.loadbalancer.server.port=8000"
+      - "traefik.http.routers.jobs.middlewares=hsts@file"
+
+  report-compiler-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.reports.rule=Host(`demo.yourdomain.com`) && PathPrefix(`/api/reports`)"
+      - "traefik.http.routers.reports.entrypoints=websecure"
+      - "traefik.http.routers.reports.tls.certresolver=ct2"
+      - "traefik.http.services.reports.loadbalancer.server.port=8000"
+      - "traefik.http.routers.reports.middlewares=hsts@file"
+
+  xbrl-mapping-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.xmap.rule=Host(`demo.yourdomain.com`) && PathPrefix(`/api/xmap`)"
+      - "traefik.http.routers.xmap.entrypoints=websecure"
+      - "traefik.http.routers.xmap.tls.certresolver=ct2"
+      - "traefik.http.services.xmap.loadbalancer.server.port=8000"
+      - "traefik.http.routers.xmap.middlewares=hsts@file"
+
+volumes:
+  traefik_letsencrypt:

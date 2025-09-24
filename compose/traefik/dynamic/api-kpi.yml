@@ -1,0 +1,13 @@
+http:
+  routers:
+    api-kpi:
+      rule: "PathPrefix(`/api/kpi`)"
+      entryPoints: [web]
+      service: kpi-svc
+      # IMPORTANT: no middlewares that StripPrefix
+
+  services:
+    kpi-svc:
+      loadBalancer:
+        servers:
+          - url: "http://kpi-calculation-service:8000"

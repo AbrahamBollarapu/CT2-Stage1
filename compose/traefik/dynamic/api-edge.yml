@@ -1,0 +1,12 @@
+http:
+  routers:
+    api-edge:
+      rule: PathPrefix(`/api/edge`)
+      service: edge-svc
+      entryPoints: [web]
+
+  services:
+    edge-svc:
+      loadBalancer:
+        servers:
+          - url: http://edge-gateway:8001

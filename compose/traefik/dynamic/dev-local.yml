@@ -1,0 +1,11 @@
+http:
+  routers:
+    dash-local:
+      rule: HostRegexp(`localhost`, `127.0.0.1`)
+      entryPoints: [web]        # web is :8081
+      service: dash-svc
+  services:
+    dash-svc:
+      loadBalancer:
+        servers:
+          - url: "http://dashboards-service:8000"

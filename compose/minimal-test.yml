@@ -1,0 +1,26 @@
+﻿version: '3.8'
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./compose/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - ct2-test
+
+  edge-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      MQTT_URL: mqtt://mosquitto:1883
+      PORT: "8001"
+    depends_on:
+      - mosquitto
+    networks:
+      - ct2-test
+
+networks:
+  ct2-test:
+    driver: bridge

@@ -1,19 +1,31 @@
 services:
-  suppliers-service:
-    image: ct2-suppliers-service
-    container_name: ct2-suppliers-service-1
+  supplier-service:
+    build:
+      context: ../apps/backend/services/supplier-service
+      dockerfile: Dockerfile
+    image: ct2-demo-supplier-service
+    container_name: ct2-demo-supplier-service-1
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
-      PGHOST: db
+      API_KEY: "ct2-dev-key"
+      PORT: "8000"
+      PGHOST: "evidence-db"
       PGPORT: "5432"
-      PGUSER: postgres
-      PGPASSWORD: postgres
-      PGDATABASE: postgres
-    expose:
-      - "8000"      # for Traefik on the same network
-    restart: unless-stopped
+      PGUSER: "postgres"
+      PGPASSWORD: "postgres"
+      PGDATABASE: "evidence"
     depends_on:
-      evidence-db:
-        condition: service_healthy
+      - evidence-db
     networks:
-      - default
+      - ct2-demo_default
+      - ct2_data
+    healthcheck:
+      test: ["CMD","wget","-qO-","http://localhost:8000/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+
+networks:
+  ct2-demo_default:
+    external: true
+  ct2_data:
+    external: true

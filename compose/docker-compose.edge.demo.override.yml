@@ -1,0 +1,10 @@
+# docker-compose.edge.demo.override.yml
+services:
+  edge-gateway:
+    environment:
+      ORG_ID: "test-org"
+      METER: "meter-001"
+      UNIT: "kwh"
+      METRIC: "grid_kwh"
+      ENABLE_SIM: "true"
+      POST_INTERVAL_MS: "5000"

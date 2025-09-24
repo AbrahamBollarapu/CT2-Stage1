@@ -1,0 +1,42 @@
+﻿# D:\CT2\compose\docker-compose.demo.override.ingest.yml
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: ct2-mosquitto
+    restart: unless-stopped
+    networks: [ ct2-demo_default ]
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  edge-gateway:
+    build:
+      context: ../apps/edge/edge-gateway
+      dockerfile: Dockerfile
+    image: ct2-edge-gateway
+    container_name: ct2-edge-gateway-1
+    restart: unless-stopped
+    environment:
+      API_BASE: "http://traefik:8081"
+      API_KEY: "ct2-dev-key"
+      ORG_ID: "test-org"
+      METER: "throughput"
+      UNIT: "count"
+      MQTT_URL: "mqtt://mosquitto:1883"
+      DEVICE_ID: "demo-edge-001"
+      POST_INTERVAL_MS: "5000"
+      SIM_INTERVAL_MS: "5000"
+      ENABLE_SIM: "true"
+    depends_on:
+      - mosquitto
+    networks: [ ct2-demo_default ]
+    healthcheck:                 # <-- MUST be under edge-gateway (not under services)
+      test: ["CMD","wget","-qO-","http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  ct2-demo_default:
+    external: true

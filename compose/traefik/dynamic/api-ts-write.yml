@@ -1,0 +1,18 @@
+http:
+  routers:
+    api-ts-points-post:
+      rule: Path(`/api/time-series/points`) && Method(`POST`)
+      entryPoints: [web]
+      service: ts-svc
+      middlewares: [ts-add-key, ts-strip]
+      priority: 23000
+
+  middlewares:
+    ts-add-key:
+      headers:
+        customRequestHeaders:
+          X-API-Key: "ct2-dev-key"
+    ts-strip:
+      stripPrefix:
+        prefixes: ["/api/time-series"]
+        forceSlash: true

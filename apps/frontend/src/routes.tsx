@@ -1,48 +1,18 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+// apps/frontend/src/routes.tsx
+import { createBrowserRouter } from "react-router-dom";
+import AppShell from "./ui/AppShell";
+import Landing from "./ui/Landing";
 import Dashboard from "./ui/Dashboard";
-import Suppliers from "./pages/Suppliers";
-import Reports from "./pages/Reports";
-
-function Layout({ children }: { children: React.ReactNode }) {
-  const org = (import.meta.env.VITE_ORG_ID as string) || "test-org";
-  return (
-    <div style={{ padding: 12 }}>
-      <nav style={{ marginBottom: 12 }}>
-        <a href="/app" style={{ marginRight: 12 }}>Dashboards</a>
-        <a href="/app/suppliers" style={{ marginRight: 12 }}>Suppliers</a>
-        <a href="/app/reports" style={{ marginRight: 12 }}>Reports</a>
-        <span style={{ float: "right", opacity: 0.6, fontSize: 12 }}>org: {org}</span>
-      </nav>
-      {children}
-    </div>
-  );
-}
+import Suppliers from "./ui/Suppliers";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <Navigate to="/app" replace /> },
   {
-    path: "/app",
-    element: (
-      <Layout>
-        <Dashboard />
-      </Layout>
-    ),
+    path: "/",
+    element: <AppShell />,
+    children: [
+      { index: true, element: <Landing /> },
+      { path: "app", element: <Dashboard /> },
+      { path: "suppliers", element: <Suppliers /> }
+    ],
   },
-  {
-    path: "/app/suppliers",
-    element: (
-      <Layout>
-        <Suppliers />
-      </Layout>
-    ),
-  },
-  {
-    path: "/app/reports",
-    element: (
-      <Layout>
-        <Reports />
-      </Layout>
-    ),
-  },
-  { path: "*", element: <Navigate to="/app" replace /> },
 ]);

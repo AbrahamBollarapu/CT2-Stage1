@@ -1,0 +1,8 @@
+:root { --card-radius: 0.75rem; --card-border: rgba(0,0,0,.08); --card-shadow: 0 2px 12px rgba(0,0,0,.06); }
+.card { border:1px solid var(--card-border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); background:#fff; }
+.badge { border:1px solid var(--card-border); border-radius: 999px; padding: 2px 8px; font-size: 12px; background:#fff; }
+.header-shadow { box-shadow: 0 0 0 rgba(0,0,0,0); transition: box-shadow .2s ease; }
+.header-shadow.is-scrolled { box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+.radial { background: radial-gradient(120px 48px at 40px 50%, rgba(16,185,129,.10), transparent 60%); }
+.skeleton { animation: sk 1.2s ease-in-out infinite; background: linear-gradient(90deg,#f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%); background-size: 400% 100%; }
+@keyframes sk { 0%{background-position:100% 50%} 100%{background-position:0 50%} }

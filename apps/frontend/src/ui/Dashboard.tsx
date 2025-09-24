@@ -1,443 +1,166 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { tsRead } from "../api/timeSeries";
-import { kpiCompute } from "../api/kpi";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-} from "recharts";
+import React from "react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { useToast } from "./toast";
+import Skeleton from "./Skeleton";
 
-// ===== constants ============================================================
-const ORG = (import.meta.env.VITE_ORG_ID as string) || "test-org";
-const API_KEY = (import.meta.env.VITE_API_KEY as string) || "ct2-dev-key";
+type Range = "7d" | "30d";
 
-// ===== helpers ==============================================================
-// time
-function daysAgoISO(n: number) {
-  return new Date(Date.now() - n * 86_400_000).toISOString();
-}
-function nowISO() {
-  return new Date().toISOString();
+const API_BASE = "/api/time-series";
+const ORG_ID = import.meta.env.VITE_ORG_ID || "test-org";
+const API_KEY = import.meta.env.VITE_API_KEY || "ct2-dev-key";
+
+function dateToISO(d: Date) {
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString();
 }
 
-// ts normalization
-type Pt = { ts: string; value: number };
-function normalizeSeries(points: Pt[]) {
-  const byTs = new Map<string, number>();
-  for (const p of points) byTs.set(p.ts, p.value);
-  return Array.from(byTs.entries())
-    .map(([ts, value]) => ({ ts, value }))
-    .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
-}
-function fmtShort(ts: string) {
-  const d = new Date(ts);
-  return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(
-    d.getMinutes()
-  ).padStart(2, "0")}`;
+function rangeToFrom(range: Range) {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(to.getDate() - (range === "7d" ? 7 : 30));
+  return { from: dateToISO(from), to: dateToISO(to) };
 }
 
-// ui atoms
-function Card(props: React.PropsWithChildren<{ style?: React.CSSProperties }>) {
-  return (
-    <div
-      style={{
-        border: "1px solid #eee",
-        borderRadius: 16,
-        padding: 16,
-        background: "#fff",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-        ...props.style,
-      }}
-    >
-      {props.children}
-    </div>
-  );
-}
-function Skeleton({ height = 16 }: { height?: number }) {
-  return (
-    <div
-      style={{
-        height,
-        width: "100%",
-        borderRadius: 8,
-        background:
-          "linear-gradient(90deg, #f3f3f3 25%, #ececec 37%, #f3f3f3 63%)",
-        backgroundSize: "400% 100%",
-        animation: "sweep 1.25s ease-in-out infinite",
-      }}
-    />
-  );
-}
+function useThroughputSeries(range: Range, autoRefreshMs = 30000) {
+  const [data, setData] = React.useState<{ ts: string; value: number }[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
-// ===== KPIs ================================================================
-type KPI = { total_suppliers: number; compliance_score: number };
-
-// ===== Suppliers types =====================================================
-type Supplier = {
-  id: number | string;
-  org_id: string;
-  name: string;
-  country?: string;
-  created_at?: string;
-};
-type SuppliersResp =
-  | { count: number; items: Supplier[] }
-  | { error: string };
-
-// ===== Dashboard ===========================================================
-export default function Dashboard() {
-  const [days, setDays] = useState<7 | 30>(7);
-  const [autoRefresh, setAutoRefresh] = useState(false);
-
-  const [series, setSeries] = useState<Pt[]>([]);
-  const [kpi, setKpi] = useState<KPI | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  // fetch TS + KPI
-  const refresh = async (rangeDays: number) => {
+  const load = React.useCallback(async () => {
     setLoading(true);
-    setErr(null);
+    setError(null);
     try {
-      const [tsRes, kpiRes] = await Promise.all([
-        tsRead({
-          org_id: ORG,
-          meter: "throughput",
-          unit: "count",
-          from: daysAgoISO(rangeDays),
-          to: nowISO(),
-        }),
-        kpiCompute(ORG),
-      ]);
-      setSeries(normalizeSeries(tsRes.points));
-      setKpi(kpiRes);
+      const { from, to } = rangeToFrom(range);
+      const u = new URL(`${API_BASE}/points`, window.location.origin);
+      u.searchParams.set("org_id", String(ORG_ID));
+      u.searchParams.set("meter", "throughput");
+      u.searchParams.set("unit", "count");
+      u.searchParams.set("from", from);
+      u.searchParams.set("to", to);
+
+      const res = await fetch(u.toString().replace(window.location.origin, ""), {
+        headers: { "x-api-key": String(API_KEY) },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const series = (json.points || []).map((p: any) => ({
+        ts: p.ts,
+        value: Number(p.value),
+      }));
+      setData(series);
     } catch (e: any) {
-      setErr(e?.message || "Failed to load");
+      setError(e.message || "failed to load");
     } finally {
       setLoading(false);
     }
-  };
+  }, [range]);
 
-  // initial + on range change
-  useEffect(() => {
-    refresh(days);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days]);
-
-  // optional auto refresh (10s)
-  const timerRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (autoRefresh) {
-      // @ts-ignore
-      timerRef.current = window.setInterval(() => refresh(days), 10_000);
+  React.useEffect(() => {
+    let timer: any;
+    load();
+    if (autoRefreshMs > 0) {
+      timer = setInterval(load, autoRefreshMs);
     }
-    return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current);
-      timerRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefresh, days]);
+    return () => timer && clearInterval(timer);
+  }, [load, autoRefreshMs]);
 
-  const chartData = useMemo(
-    () => series.map((p) => ({ ...p, label: fmtShort(p.ts) })),
-    [series]
-  );
+  return { data, loading, error, reload: load };
+}
+
+function formatTick(ts: string) {
+  const d = new Date(ts);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+export default function Dashboard() {
+  const [range, setRange] = React.useState<Range>("7d");
+  const { data, loading, error, reload } = useThroughputSeries(range, 30000);
+  const { toast } = useToast();
+
+  // show a toast exactly when error changes
+  React.useEffect(() => {
+    if (error) {
+      toast({
+        variant: "error",
+        title: "Time-series load failed",
+        description: error,
+      });
+    }
+  }, [error, toast]);
 
   return (
-    <div style={{ display: "grid", gap: 18 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 600 }}>Operational Overview</h1>
-
-      {/* Controls */}
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <RangeToggle value={days} onChange={setDays} />
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input
-            type="checkbox"
-            checked={autoRefresh}
-            onChange={(e) => setAutoRefresh(e.target.checked)}
-          />
-          Auto refresh (10s)
-        </label>
-      </div>
-
-      {/* KPI row */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          gap: 12,
-        }}
-      >
-        <Card>
-          <div style={{ opacity: 0.7, marginBottom: 6 }}>Total suppliers</div>
-          {loading ? (
-            <Skeleton height={28} />
-          ) : (
-            <div style={{ fontSize: 28, fontWeight: 600 }}>
-              {kpi?.total_suppliers ?? "-"}
-            </div>
-          )}
-        </Card>
-
-        <Card>
-          <div style={{ opacity: 0.7, marginBottom: 6 }}>Compliance score</div>
-          {loading ? (
-            <Skeleton height={28} />
-          ) : (
-            <div style={{ fontSize: 28, fontWeight: 600 }}>
-              {typeof kpi?.compliance_score === "number"
-                ? kpi!.compliance_score.toFixed(1)
-                : "-"}
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {/* Time-series line chart */}
-      <Card style={{ height: 360 }}>
-        <div style={{ opacity: 0.7, marginBottom: 8 }}>
-          Throughput ({days}d)
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setRange("7d")}
+            className={`px-3 py-1.5 rounded-full border text-sm ${range === "7d" ? "bg-black text-white" : "hover:bg-gray-100"}`}
+          >
+            7d
+          </button>
+          <button
+            onClick={() => setRange("30d")}
+            className={`px-3 py-1.5 rounded-full border text-sm ${range === "30d" ? "bg-black text-white" : "hover:bg-gray-100"}`}
+          >
+            30d
+          </button>
+          <button
+            onClick={() => reload()}
+            className="px-3 py-1.5 rounded-full border text-sm hover:bg-gray-100"
+            title="Refresh now"
+          >
+            ↻ Refresh
+          </button>
         </div>
-        <div style={{ height: 300 }}>
-          {loading ? (
-            <Skeleton height={300} />
-          ) : err ? (
-            <div style={{ color: "crimson" }}>Error: {err}</div>
-          ) : chartData.length === 0 ? (
-            <div style={{ opacity: 0.65 }}>No data in range.</div>
+      </div>
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="rounded-xl border p-4 shadow-sm">
+          <div className="text-sm text-gray-500">Throughput (last {range})</div>
+          <div className="mt-1 text-2xl font-semibold">
+            {loading && !data.length ? <Skeleton className="h-7 w-16" /> : (data.length ? data[data.length - 1].value : "--")}
+          </div>
+          <div className="mt-2">
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs border">
+              health: <span className="ml-1 h-2 w-2 rounded-full bg-green-500 inline-block" />
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Chart card */}
+      <div className="rounded-xl border p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="text-sm text-gray-500">Time-series</div>
+            <div className="text-lg font-medium">Throughput</div>
+          </div>
+          <div className="text-sm">
+            Auto-refresh: <span className="font-medium">30s</span>
+          </div>
+        </div>
+
+        <div className="h-72">
+          {loading && !data.length ? (
+            <Skeleton className="h-full w-full" />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart
+                data={data.map(d => ({ ...d, x: new Date(d.ts) }))}
+                margin={{ top: 10, right: 20, bottom: 10, left: 0 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" minTickGap={24} />
+                <XAxis dataKey="ts" tickFormatter={formatTick} minTickGap={24} />
                 <YAxis allowDecimals={false} />
-                <Tooltip
-                  labelFormatter={(v) => v}
-                  formatter={(val) => [val as number, "count"]}
-                />
-                <Line type="monotone" dataKey="value" dot={false} strokeWidth={2} />
+                <Tooltip labelFormatter={(label) => new Date(label as string).toLocaleString()} />
+                <Line type="monotone" dataKey="value" dot={false} strokeWidth={2} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           )}
         </div>
-      </Card>
-
-      {/* Health chips */}
-      <Card>
-        <HealthBar />
-      </Card>
-
-      {/* Suppliers panel (graceful when backend is disabled) */}
-      <SuppliersPanel />
-    </div>
-  );
-}
-
-// ===== Range Toggle =========================================================
-function RangeToggle({
-  value,
-  onChange,
-}: {
-  value: 7 | 30;
-  onChange: (v: 7 | 30) => void;
-}) {
-  const Btn = ({
-    v,
-    label,
-  }: {
-    v: 7 | 30;
-    label: string;
-  }) => (
-    <button
-      onClick={() => onChange(v)}
-      style={{
-        padding: "6px 12px",
-        borderRadius: 999,
-        border: "1px solid #ddd",
-        background: value === v ? "#111" : "#fff",
-        color: value === v ? "#fff" : "#111",
-        cursor: "pointer",
-      }}
-    >
-      {label}
-    </button>
-  );
-  return (
-    <div style={{ display: "flex", gap: 8 }}>
-      <Btn v={7} label="7d" />
-      <Btn v={30} label="30d" />
-    </div>
-  );
-}
-
-// ===== Health Bar ===========================================================
-function HealthBar() {
-  const [status, setStatus] = useState<{ ts?: boolean; kpi?: boolean }>();
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const H: RequestInit = { headers: { "x-api-key": API_KEY } };
-        const [tsOk, kpiOk] = await Promise.all([
-          fetch("/api/time-series/health", H).then((r) => r.ok),
-          fetch("/api/kpi/health", H).then((r) => r.ok),
-        ]);
-        setStatus({ ts: tsOk, kpi: kpiOk });
-      } catch {
-        setStatus({ ts: false, kpi: false });
-      }
-    })();
-  }, []);
-
-  const chip = (ok?: boolean) => (
-    <span
-      style={{
-        padding: "4px 10px",
-        borderRadius: 999,
-        background: ok ? "#e7f8ee" : "#fdeaea",
-        color: ok ? "#0a7f2e" : "#a51d2d",
-        fontSize: 12,
-      }}
-    >
-      {ok ? "healthy" : "down"}
-    </span>
-  );
-
-  return (
-    <div style={{ display: "flex", gap: 12 }}>
-      <div>Time-series: {chip(status?.ts)}</div>
-      <div>KPI: {chip(status?.kpi)}</div>
-    </div>
-  );
-}
-
-// ===== Suppliers Panel (optional; handles 404/disabled routers) =============
-function SuppliersPanel() {
-  const [state, setState] = useState<
-    | { kind: "loading" }
-    | { kind: "error"; msg: string }
-    | { kind: "comingsoon" } // backend disabled (404)
-    | { kind: "ok"; items: Supplier[]; count: number }
-  >({ kind: "loading" });
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetch(
-          `/api/suppliers?org_id=${encodeURIComponent(ORG)}`,
-          { headers: { "x-api-key": API_KEY } }
-        );
-        if (r.status === 404) {
-          setState({ kind: "comingsoon" });
-          return;
-        }
-        if (!r.ok) {
-          const txt = await r.text();
-          setState({
-            kind: "error",
-            msg: `Backend error (${r.status}): ${txt || r.statusText}`,
-          });
-          return;
-        }
-        const data = (await r.json()) as SuppliersResp;
-        if ("items" in data && Array.isArray(data.items)) {
-          setState({ kind: "ok", items: data.items, count: data.count ?? data.items.length });
-        } else {
-          setState({ kind: "ok", items: [], count: 0 });
-        }
-      } catch (e: any) {
-        setState({ kind: "error", msg: e?.message || "Failed to load" });
-      }
-    })();
-  }, []);
-
-  return (
-    <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-        <div style={{ fontWeight: 600 }}>Suppliers</div>
-        <div style={{ opacity: 0.7, fontSize: 12 }}>org: {ORG}</div>
       </div>
-
-      {state.kind === "loading" && (
-        <>
-          <Skeleton height={18} />
-          <div style={{ height: 8 }} />
-          <Skeleton height={18} />
-          <div style={{ height: 8 }} />
-          <Skeleton height={18} />
-        </>
-      )}
-
-      {state.kind === "comingsoon" && (
-        <div style={{ opacity: 0.7 }}>
-          Coming soon — backend route is disabled (showing friendly 404).
-        </div>
-      )}
-
-      {state.kind === "error" && (
-        <div style={{ color: "crimson" }}>{state.msg}</div>
-      )}
-
-      {state.kind === "ok" && (
-        <>
-          <div style={{ marginBottom: 8 }}>
-            Total: <strong>{state.count}</strong>
-          </div>
-          {state.items.length > 0 ? (
-            <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: 14,
-                }}
-              >
-                <thead>
-                  <tr style={{ textAlign: "left" }}>
-                    {["Name", "Country", "Created"].map((h) => (
-                      <th key={h} style={{ padding: "6px 8px", borderBottom: "1px solid #eee" }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.items.map((s) => (
-                    <tr key={String(s.id)}>
-                      <td style={{ padding: "6px 8px", borderBottom: "1px solid #f5f5f5" }}>
-                        {s.name}
-                      </td>
-                      <td style={{ padding: "6px 8px", borderBottom: "1px solid #f5f5f5" }}>
-                        {s.country || "—"}
-                      </td>
-                      <td style={{ padding: "6px 8px", borderBottom: "1px solid #f5f5f5" }}>
-                        {s.created_at
-                          ? new Date(s.created_at).toLocaleDateString()
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div style={{ opacity: 0.7 }}>No suppliers yet.</div>
-          )}
-        </>
-      )}
-    </Card>
+    </div>
   );
 }
-
-/* Keyframe for the Skeleton shimmering effect (scoped) */
-const style = document.createElement("style");
-style.innerHTML = `
-@keyframes sweep { 
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}`;
-document.head.appendChild(style);

@@ -1,0 +1,96 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: ct2-traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.le.acme.httpchallenge=true"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.le.acme.email=${TRAEFIK_ACME_EMAIL}"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+      # redirect http → https
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # (optional) dashboard only on internal; comment out to expose
+      - "--api.dashboard=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      # (optional) admin on 8080; recommend bind to localhost only or omit in prod
+      # - "127.0.0.1:8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "ct2-letsencrypt:/letsencrypt"
+    networks: [ ct2_net ]
+    labels:
+      - "traefik.enable=true"
+      # optional basic auth for Traefik dashboard (if you expose it)
+      # - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_DASH_HOST}`)"
+      # - "traefik.http.routers.traefik.service=api@internal"
+      # - "traefik.http.routers.traefik.entrypoints=websecure"
+      # - "traefik.http.routers.traefik.tls.certresolver=le"
+
+  # Frontend: serve the Vite build via a tiny static server
+  dashboards-service:
+    build:
+      context: ../apps/frontend/dashboards-service
+      dockerfile: Dockerfile.prod
+    image: ct2-frontend
+    environment:
+      VITE_API_BASE: ""                # same-origin calls through Traefik
+      VITE_EDGE_HEALTH_URL: "/api/edge/health"
+      VITE_ENV: "STAGE"
+    networks: [ ct2_net ]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fe.rule=Host(`${STAGING_HOST}`)"   # e.g., demo.yourdomain.com
+      - "traefik.http.routers.fe.entrypoints=websecure"
+      - "traefik.http.routers.fe.tls.certresolver=le"
+      - "traefik.http.services.fe.loadbalancer.server.port=4173"
+
+  # Existing APIs (examples) — add Host rules so they’re same-origin under the staging host
+  time-series-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ts.rule=Host(`${STAGING_HOST}`) && PathPrefix(`/api/time-series`)"
+      - "traefik.http.routers.ts.entrypoints=websecure"
+      - "traefik.http.routers.ts.tls.certresolver=le"
+      - "traefik.http.services.ts.loadbalancer.server.port=8000"
+
+  supplier-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sup.rule=Host(`${STAGING_HOST}`) && PathPrefix(`/api/suppliers`)"
+      - "traefik.http.routers.sup.entrypoints=websecure"
+      - "traefik.http.routers.sup.tls.certresolver=le"
+      - "traefik.http.services.sup.loadbalancer.server.port=8000"
+
+  kpi-calculation-service:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kpi.rule=Host(`${STAGING_HOST}`) && PathPrefix(`/api/kpi`)"
+      - "traefik.http.routers.kpi.entrypoints=websecure"
+      - "traefik.http.routers.kpi.tls.certresolver=le"
+      - "traefik.http.services.kpi.loadbalancer.server.port=8000"
+
+  edge-gateway:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.edgeh.rule=Host(`${STAGING_HOST}`) && Path(`/api/edge/health`) && Method(`GET`)"
+      - "traefik.http.routers.edgeh.entrypoints=websecure"
+      - "traefik.http.routers.edgeh.tls.certresolver=le"
+      - "traefik.http.routers.edgeh.middlewares=edge-rewrite,edge-rl"
+      - "traefik.http.middlewares.edge-rewrite.replacepath.path=/health"
+      - "traefik.http.middlewares.edge-rl.ratelimit.average=5"
+      - "traefik.http.middlewares.edge-rl.ratelimit.burst=10"
+      - "traefik.http.services.edgeh.loadbalancer.server.port=8001"
+
+networks:
+  ct2_net:
+    external: true
+
+volumes:
+  ct2-letsencrypt:

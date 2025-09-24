@@ -1,0 +1,19 @@
+http:
+  routers:
+    # Make this router win over the 23000 ones
+    api-ts-points-post-override:
+      entryPoints: ["web"]                          # :8081
+      rule: Path(`/api/time-series/points`) && Method(`POST`)
+      service: ts-svc                               # keep using your file-defined service
+      middlewares: ["ts-add-key-fixed","ts-strip"]  # reuse ts-strip from file (prefix removal)
+      priority: 23500
+
+  middlewares:
+    # Send Bearer + both API-Key casings + org id (cover all backends)
+    ts-add-key-fixed:
+      headers:
+        customRequestHeaders:
+          Authorization: "Bearer ct2-dev-key"
+          X-API-Key: "ct2-dev-key"
+          x-api-key: "ct2-dev-key"
+          x-org-id: "test-org"

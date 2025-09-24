@@ -1,0 +1,4 @@
+﻿services:
+  time-series-service:
+    environment:
+      AUTH_MODE: "open"

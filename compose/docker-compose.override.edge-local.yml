@@ -1,0 +1,6 @@
+services:
+  edge-gateway:
+    image: ct2-edge-gateway
+    command: ["node","server.mjs"]
+    volumes:
+      - D:\CT2\apps\edge\edge-gateway\server.mjs:/app/server.mjs:ro

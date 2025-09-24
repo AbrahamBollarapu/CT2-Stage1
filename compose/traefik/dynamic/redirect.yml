@@ -1,0 +1,17 @@
+# Middlewares & security headers (referenced by routers above)
+http:
+  middlewares:
+    forcehttps:
+      redirectScheme:
+        scheme: https
+        permanent: true
+    hsts:
+      headers:
+        stsSeconds: 15552000          # 180 days
+        stsIncludeSubdomains: true
+        stsPreload: true
+        # Optional security hardening:
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "geolocation=(), microphone=(), camera=()"

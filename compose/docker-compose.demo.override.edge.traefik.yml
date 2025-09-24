@@ -1,0 +1,8 @@
+services:
+  edge-gateway:
+    labels:
+      - traefik.http.routers.api-edge.rule=PathPrefix(/api/edge)
+      - traefik.http.routers.api-edge.entrypoints=web
+      - traefik.http.routers.api-edge.middlewares=edge-strip
+      - traefik.http.middlewares.edge-strip.stripprefix.prefixes=/api/edge
+      - traefik.http.services.api-edge.loadbalancer.server.port=8001

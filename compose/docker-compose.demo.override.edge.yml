@@ -1,0 +1,6 @@
+services:
+  edge-gateway:                        # must match the real service key
+    environment:
+      EDGE_TS_BASE: "http://traefik:8081"
+      EDGE_TS_POINTS: "/api/time-series/points"
+      EDGE_TS_API_KEY: "ct2-dev-key"

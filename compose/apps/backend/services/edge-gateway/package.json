@@ -1,0 +1,15 @@
+﻿{
+  "name": "edge-gateway",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "express": "^4.19.2",
+    "mqtt": "^5.10.1",
+    "node-fetch": "^3.3.2"
+  }
+}

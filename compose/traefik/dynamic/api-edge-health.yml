@@ -1,0 +1,19 @@
+﻿http:
+  routers:
+    api-edge-health:
+      rule: Path(`/api/edge/health`)
+      entryPoints: [web]
+      service: edge-gateway-svc
+      middlewares: [edge-health-rewrite]
+      priority: 23000
+
+  middlewares:
+    edge-health-rewrite:
+      replacePath:
+        path: /health
+
+  services:
+    edge-gateway-svc:
+      loadBalancer:
+        servers:
+          - url: "http://edge-gateway:8001"

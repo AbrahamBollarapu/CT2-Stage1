@@ -1,0 +1,20 @@
+﻿services:
+  edge-gateway:
+    labels:
+      - traefik.enable=true
+
+      # general router: /api/edge/*
+      - traefik.http.routers.api-edge.rule=PathPrefix(`/api/edge`)
+      - traefik.http.routers.api-edge.entrypoints=web
+      - traefik.http.routers.api-edge.middlewares=edge-strip
+      - traefik.http.middlewares.edge-strip.stripprefix.prefixes=/api/edge
+      - traefik.http.middlewares.edge-strip.stripprefix.forceSlash=true
+      - traefik.http.routers.api-edge.service=api-edge
+      - traefik.http.services.api-edge.loadbalancer.server.port=8001
+
+      # exact health path → /health (wins by exact Path)
+      - traefik.http.routers.api-edge-health.rule=Path(`/api/edge/health`)
+      - traefik.http.routers.api-edge-health.entrypoints=web
+      - traefik.http.routers.api-edge-health.middlewares=edge-health-rewrite
+      - traefik.http.middlewares.edge-health-rewrite.replacepath.path=/health
+      - traefik.http.routers.api-edge-health.service=api-edge

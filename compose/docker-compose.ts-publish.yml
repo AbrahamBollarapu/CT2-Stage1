@@ -1,0 +1,4 @@
+﻿services:
+  time-series-service:
+    ports:
+      - "18000:8000"
