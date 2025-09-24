@@ -1,0 +1,44 @@
+:root {
+--surface: #0b0d10;
+--ink: #e6e9ef;
+--ink-dim: #b7beca;
+--accent: #37a2ff;
+--accent-2: #00d8a4;
+--muted: #151a20;
+--card: #101318;
+--ring: #2a323c;
+--shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+
+/* Tesla‑style type scale */
+.h-hero { font-weight: 600; letter-spacing: -0.02em; font-size: clamp(28px, 3vw, 40px); line-height: 1.1; }
+.h-sub { color: var(--ink-dim); font-size: clamp(14px, 2vw, 16px); }
+
+
+/***** Cards *****/
+.card {
+background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)) , var(--card);
+border: 1px solid var(--ring);
+border-radius: 16px;
+box-shadow: var(--shadow);
+}
+
+
+/***** Spacing helpers *****/
+.gx-hero { gap: clamp(.75rem, 2vw, 1.25rem) }
+.grid-kpi { display:grid; grid-template-columns: repeat(12, minmax(0,1fr)); gap: clamp(.75rem, 2vw, 1rem) }
+
+
+/***** Buttons *****/
+.btn {
+display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+background: linear-gradient(90deg, var(--accent), var(--accent-2));
+color:#000; border:0; border-radius:12px; padding:.7rem 1rem; font-weight:600;
+}
+.btn:disabled { opacity:.6; filter:saturate(.6) }
+.btn-ghost { background: transparent; color: var(--ink); border:1px solid var(--ring); }
+
+
+/***** Empty state *****/
+.empty-illustration { opacity:.8; filter: drop-shadow(0 8px 24px rgba(0,0,0,.35)); }

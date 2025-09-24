@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-app text-app-ink antialiased; }
+  ::selection { background: rgba(137,180,255,.25); }
+  *::-webkit-scrollbar{ width:10px; height:10px;}
+  *::-webkit-scrollbar-thumb{ background-color:rgba(230,232,239,.15); border-radius:9999px;}
+  *::-webkit-scrollbar-track{ background-color:transparent;}
+}
+
+@layer components {
+  .page-wrap { @apply max-w-7xl mx-auto px-4; }
+  .js-header { @apply sticky top-0 z-40 transition-shadow duration-300 bg-app/70 backdrop-blur; }
+  .js-header.is-scrolled { @apply shadow-soft; }
+  .kicker { @apply text-xs uppercase tracking-wider text-app-ink-dim; }
+  .ui-card { @apply bg-app-card rounded-2xl shadow-soft border border-white/5; }
+  .ui-section { @apply bg-app-surface rounded-2xl shadow-soft border border-white/5; }
+  .btn { @apply inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition; }
+  .btn-primary { @apply btn bg-app-primary/20 text-app-ink hover:bg-app-primary/30; }
+  .btn-ghost   { @apply btn bg-white/5 text-app-ink hover:bg-white/10; }
+  .stat-up   { @apply text-xs text-green-400; }
+  .stat-down { @apply text-xs text-red-400; }
+  .spark-wrap { @apply relative h-40 md:h-48 rounded-2xl bg-white/5 overflow-hidden; }
+  .spark-empty { @apply flex items-center justify-center h-full text-app-ink-dim; }
+  .chart-badge { @apply absolute right-3 top-3 text-xs bg-white/10 rounded-md px-2 py-1; }
+  .app-footer { @apply page-wrap py-8 text-sm text-app-ink-dim; }
+}
+
+@layer utilities {
+  .text-dim { @apply text-app-ink-dim; }
+}
